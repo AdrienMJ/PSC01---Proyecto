@@ -1,2 +1,2 @@
 rootProject.name = 'example-gradle-multi-module'
-include 'my-app', 'my-webapp'
+include 'myapp', 'my-webapp'
