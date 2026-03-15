@@ -1,5 +1,5 @@
 apply plugin: 'war'
 
 dependencies {
-    implementation project(':my-app')
+    implementation project(':myapp')
 }

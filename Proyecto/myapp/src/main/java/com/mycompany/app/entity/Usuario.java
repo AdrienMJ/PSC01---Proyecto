@@ -1,4 +1,4 @@
-package entity;
+package com.mycompany.app.entity;
 
 public class Usuario {
     private String nombreUsuario;
