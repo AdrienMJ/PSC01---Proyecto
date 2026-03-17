@@ -1,0 +1,6 @@
+.gradle/
+build/
+myapp/build/
+.vscode/
+bin/
+*.class
