@@ -1,0 +1,44 @@
+plugins {
+    id 'java'
+    // Usamos la 3.4.3 que es más estable con Gradle 9
+    id 'org.springframework.boot' version '3.4.3' 
+    // Esta versión (1.1.7) es la que corrige el error que te ha salido
+    id 'io.spring.dependency-management' version '1.1.7' 
+}
+
+group = 'com.mycompany'
+version = '0.0.1-SNAPSHOT'
+
+// ¡FUNDAMENTAL! Le dice a Gradle que descargue las librerías de los servidores de Maven
+repositories {
+    mavenCentral()
+}
+
+// Configuración para la clase principal (HU #6)
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+dependencies {
+    // Web para hacer los controladores (API REST)
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    
+    // JPA para la base de datos y anotaciones @Entity
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    
+    // Base de datos en memoria (H2)
+    runtimeOnly 'com.h2database:h2'
+    
+    // Lombok para ahorrarte escribir Getters/Setters
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // Para los tests
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+test {
+    useJUnitPlatform()
+}

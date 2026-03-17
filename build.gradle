@@ -1,0 +1,26 @@
+// Archivo: /build.gradle
+plugins {
+    id 'org.springframework.boot' version '3.4.3' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
+    id 'java'
+}
+
+allprojects {
+    group = 'com.mycompany'
+    version = '0.0.1-SNAPSHOT'
+
+    repositories {
+        mavenCentral()
+    }
+}
+
+// Aquí solo configuramos lo común para todos los subproyectos
+subprojects {
+    apply plugin: 'java'
+    
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+}
