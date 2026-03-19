@@ -15,10 +15,24 @@ public class UsuarioService {
         // Validación: ¿Ya existe el email?
         if (usuarioRepository.findByEmail(usuario.getEmail()).isPresent()) {
             throw new Exception("El email ya está registrado");
-        }
-        
-        // Aquí en el futuro cifrarás la contraseña (BCrypt)
-        // Por ahora, lo guardamos tal cual para la demo
+        }    
+        //igual habria que poner un encriptador de contraseñas o algo (opcional)
         return usuarioRepository.save(usuario);
     }
+    public Usuario login(String email, String password) throws Exception {
+    //Buscar usuario por email
+    java.util.Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
+    
+    //si no existe el email lanzamos execepción generica
+    if (usuarioOpt.isEmpty()) {
+        throw new Exception("Email o contraseña incorrectos");
+    }
+    //si el email existe comprobamos contraseña
+    Usuario usuario = usuarioOpt.get();
+    if (!usuario.getPassword().equals(password)) {
+        throw new Exception("Email o contraseña incorrectos");
+    }
+    //si todo esta bien devolvemos el usuario
+    return usuario;
+}
 }
