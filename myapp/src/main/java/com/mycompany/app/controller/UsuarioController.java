@@ -23,4 +23,18 @@ public class UsuarioController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody Usuario loginRequest) {
+        try {
+            // Usamos el servicio de login
+            Usuario usuarioLogueado = usuarioService.login(loginRequest.getEmail(), loginRequest.getPassword());
+            
+            // Devolvemos el usuario
+            return ResponseEntity.ok(usuarioLogueado);
+        } catch (Exception e) {
+            // 401 Unauthorized (No autorizado)
+            return ResponseEntity.status(401).body(e.getMessage());
+        }
+    }
 }
