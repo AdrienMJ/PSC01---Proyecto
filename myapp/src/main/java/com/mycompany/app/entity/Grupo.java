@@ -1,8 +1,8 @@
 package com.mycompany.app.entity;
 
 import jakarta.persistence.*;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "grupos")
@@ -10,7 +10,11 @@ public class Grupo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    
     private String nombre;
+
+    @Enumerated(EnumType.STRING) // Guarda el nombre de la moneda, no el índice
+    private Moneda moneda;
 
     @ManyToMany
     @JoinTable(
@@ -20,15 +24,29 @@ public class Grupo {
     )
     private List<Usuario> miembros = new ArrayList<>();
 
-    @OneToMany(mappedBy = "grupo")
+    @OneToMany(mappedBy = "grupo", cascade = CascadeType.ALL)
     private List<Gasto> gastos = new ArrayList<>();
 
     public Grupo() {}
-    public Grupo(String nombre) { this.nombre = nombre; }
 
+    public Grupo(String nombre, Moneda moneda) {
+        this.nombre = nombre;
+        this.moneda = moneda;
+    }
+
+    // Método de conveniencia para añadir miembros (Sincroniza ambos lados)
+    public void addMiembro(Usuario usuario) {
+        this.miembros.add(usuario);
+        usuario.getGrupos().add(this);
+    }
+
+    // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
+    public Moneda getMoneda() { return moneda; }
+    public void setMoneda(Moneda moneda) { this.moneda = moneda; }
     public List<Usuario> getMiembros() { return miembros; }
+    public List<Gasto> getGastos() { return gastos; }
 }
