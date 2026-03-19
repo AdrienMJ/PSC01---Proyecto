@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Tricount Clone - Inicio</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: space-around; padding: 50px; }
+        form { border: 1px solid #ccc; padding: 20px; border-radius: 8px; width: 300px; }
+        div { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .success { color: green; margin-top: 10px; }
+        .error { color: red; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <form id="formRegistro">
+        <h3>Registrarse</h3>
+        <div>
+            <label>Nombre:</label>
+            <input type="text" id="regNombre" required>
+        </div>
+        <div>
+            <label>Email:</label>
+            <input type="email" id="regEmail" required>
+        </div>
+        <div>
+            <label>Contraseña:</label>
+            <input type="password" id="regPass" required>
+        </div>
+        <button type="submit">Crear Cuenta</button>
+        <div id="msgRegistro"></div>
+    </form>
+
+    <form id="formLogin">
+        <h3>Iniciar Sesión</h3>
+        <div>
+            <label>Email:</label>
+            <input type="email" id="loginEmail" required>
+        </div>
+        <div>
+            <label>Contraseña:</label>
+            <input type="password" id="loginPass" required>
+        </div>
+        <button type="submit">Entrar</button>
+        <div id="msgLogin"></div>
+    </form>
+
+    <script>
+        // Lógica de Registro
+        document.getElementById('formRegistro').addEventListener('submit', async (e) => {
+            e.preventDefault(); // Evita que la página se recargue
+            const msg = document.getElementById('msgRegistro');
+            msg.className = ''; // Limpia clases
+
+            const usuario = {
+                username: document.getElementById('regNombre').value,
+                email: document.getElementById('regEmail').value,
+                password: document.getElementById('regPass').value
+            };
+
+            try {
+                const resp = await fetch('/api/usuarios/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(usuario)
+                });
+
+                if (resp.ok) {
+                    msg.textContent = '¡Usuario creado con éxito! Ya puedes loguearte.';
+                    msg.className = 'success';
+                    e.target.reset(); // Limpia el formulario
+                } else {
+                    const error = await resp.text();
+                    msg.textContent = `Error: ${error}`;
+                    msg.className = 'error';
+                }
+            } catch (err) {
+                msg.textContent = 'Error de conexión al servidor.';
+                msg.className = 'error';
+            }
+        });
+
+        // Lógica de Login
+        document.getElementById('formLogin').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('msgLogin');
+            msg.className = '';
+
+            const loginRequest = {
+                email: document.getElementById('loginEmail').value,
+                password: document.getElementById('loginPass').value
+            };
+
+            try {
+                const resp = await fetch('/api/usuarios/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(loginRequest)
+                });
+
+                if (resp.ok) {
+                    const usuario = await resp.json();
+                    msg.textContent = `¡Bienvenido, ${usuario.username}! (Redirigiendo...)`;
+                    msg.className = 'success';
+                    // Aquí en el futuro guardarías el token y redirigirías
+                } else {
+                    const error = await resp.text();
+                    msg.textContent = `Error: ${error}`;
+                    msg.className = 'error';
+                }
+            } catch (err) {
+                msg.textContent = 'Error de conexión al servidor.';
+                msg.className = 'error';
+            }
+        });
+    </script>
+</body>
+</html>
