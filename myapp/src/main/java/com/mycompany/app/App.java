@@ -11,8 +11,8 @@ public class App {
         System.out.println("¡App de Tricount funcionando!");
         
         // Ejemplo de creación de objetos compatible con las nuevas Entidades
-        Usuario adrien = new Usuario("Adrien", "adrien@mail.com", "password123");
-        Grupo viaje = new Grupo("Viaje a Madrid");
+        Usuario adrien = new Usuario("Adrien", "adrien@mail.com", "123");
+        Grupo viaje = new Grupo("Viaje a Madrid", Moneda.EURO);
         
         // Ahora el constructor de Gasto solo pide lo necesario
         Gasto cena = new Gasto("Cena japonesa", 45.50, adrien, viaje);

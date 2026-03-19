@@ -13,7 +13,7 @@ public class Grupo {
     
     private String nombre;
 
-    @Enumerated(EnumType.STRING) // Guarda el nombre de la moneda, no el índice
+    @Enumerated(EnumType.STRING)//Guarda el nombre de la moneda, no el índice
     private Moneda moneda;
 
     @ManyToMany

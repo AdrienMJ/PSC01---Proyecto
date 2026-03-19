@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "usuarios")
 public class Usuario {
@@ -16,6 +18,7 @@ public class Usuario {
     private String password;
 
     @ManyToMany(mappedBy = "miembros")
+    @JsonIgnore //Esto es importante para que el JSON no pese infinito
     private List<Grupo> grupos = new ArrayList<>();
 
     public Usuario() {}

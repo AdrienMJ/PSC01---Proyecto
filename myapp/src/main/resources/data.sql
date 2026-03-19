@@ -3,3 +3,4 @@
 
 INSERT INTO usuarios (username, email, password) VALUES ('Prueba', 'test@mail.com', '000');
 INSERT INTO usuarios (username, email, password) VALUES ('Adrien', 'adrien@mail.com', '123');
+

@@ -103,9 +103,17 @@
 
                 if (resp.ok) {
                     const usuario = await resp.json();
-                    msg.textContent = `¡Bienvenido, ${usuario.username}! (Redirigiendo...)`;
+                    // Guardamos el ID y el nombre para usarlos en el dashboard
+                    localStorage.setItem('userId', usuario.id);
+                    localStorage.setItem('username', usuario.username);
+                    
+                    msg.textContent = `¡Bienvenido, ${usuario.username}! Redirigiendo...`;
                     msg.className = 'success';
-                    // Aquí en el futuro guardarías el token y redirigirías
+                    
+                    // Redirigir después de 1 segundo
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1000);
                 } else {
                     const error = await resp.text();
                     msg.textContent = `Error: ${error}`;
