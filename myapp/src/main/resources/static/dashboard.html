@@ -5,15 +5,26 @@
     <title>Mis Grupos - Tricount Clone</title>
     <style>
         body { font-family: sans-serif; padding: 30px; background-color: #f4f7f6; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .container { max-width: 720px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; gap: 12px; }
         .form-grupo { margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 8px; }
         input, select { padding: 8px; margin-right: 10px; margin-bottom: 10px; }
         button { padding: 8px 15px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 4px; }
         .btn-logout { background: #dc3545; }
+        .btn-rename { background: #007bff; }
         ul { list-style: none; padding: 0; }
-        li { background: #fff; border: 1px solid #ddd; margin-bottom: 5px; padding: 10px; border-radius: 5px; display: flex; justify-content: space-between; }
+        li { background: #fff; border: 1px solid #ddd; margin-bottom: 12px; padding: 12px; border-radius: 8px; }
+        .grupo-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .grupo-nombre { font-weight: bold; }
+        .grupo-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .grupo-actions input { margin: 0; flex: 1 1 220px; }
         .moneda-tag { background: #007bff; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8em; }
+        .mensaje-grupo { margin-top: 8px; font-size: 0.9em; }
+        .rename-form { display: none; margin-top: 10px; }
+        .rename-form.visible { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .rename-form input { flex: 1 1 220px; margin: 0; }
+        .btn-rename-toggle { background: #6c757d; }
+        .btn-cancel { background: #dc3545; }
     </style>
 </head>
 <body>
@@ -76,34 +87,48 @@
 
         // 2. Cargar los grupos del usuario
         async function cargarGrupos() {
+            const lista = document.getElementById('listaGrupos');
+
             try {
                 const resp = await fetch(`/api/grupos/usuario/${userId}`);
                 if (!resp.ok) throw new Error("No se pudieron cargar los grupos");
-                
+
                 const grupos = await resp.json();
-                const lista = document.getElementById('listaGrupos');
-                lista.innerHTML = ""; 
+                lista.innerHTML = "";
 
                 if (grupos.length === 0) {
                     lista.innerHTML = "<li>No tienes grupos todavía.</li>";
+                    return;
                 }
 
                 grupos.forEach(g => {
                     const li = document.createElement('li');
                     li.innerHTML = `
-                        <span>${g.nombre}</span>
-                        <span class="moneda-tag">${g.moneda}</span>
+                        <div class="grupo-header">
+                            <span class="grupo-nombre" id="nombre-texto-${g.id}">${g.nombre}</span>
+                            <span class="moneda-tag">${g.moneda}</span>
+                        </div>
+                        <div class="grupo-actions">
+                            <button class="btn-rename-toggle" onclick="toggleRename(${g.id})">Cambiar nombre</button>
+                        </div>
+                        <div class="rename-form" id="rename-form-${g.id}">
+                            <input type="text" id="rename-${g.id}" placeholder="Nuevo nombre del grupo">
+                            <button class="btn-rename" onclick="renombrarGrupo(${g.id})">Guardar</button>
+                            <button class="btn-cancel" onclick="toggleRename(${g.id})">Cancelar</button>
+                        </div>
+                        <div class="mensaje-grupo" id="msg-grupo-${g.id}"></div>
                     `;
                     lista.appendChild(li);
                 });
             } catch (err) {
+                lista.innerHTML = "<li>No se pudieron cargar tus grupos.</li>";
                 console.error("Error:", err);
             }
         }
 
         // 3. Crear nuevo grupo
         async function crearGrupo() {
-            const nombre = document.getElementById('nombreGrupo').value;
+            const nombre = document.getElementById('nombreGrupo').value.trim();
             const moneda = document.getElementById('monedaGrupo').value;
             const status = document.getElementById('statusMsg');
 
@@ -113,10 +138,16 @@
                 return;
             }
 
+            if (!moneda) {
+                status.textContent = "Selecciona una moneda";
+                status.style.color = "red";
+                return;
+            }
+
             const payload = {
                 nombre: nombre,
                 moneda: moneda,
-                idCreador: userId
+                idCreador: Number(userId)
             };
 
             try {
@@ -129,10 +160,8 @@
                 if (resp.ok) {
                     status.textContent = "¡Grupo creado con éxito!";
                     status.style.color = "green";
-                    document.getElementById('nombreGrupo').value = ""; // Limpia el input
-                    
-                    // ESTO ES LO QUE HACE QUE APAREZCA DEBAJO
-                    cargarGrupos(); 
+                    document.getElementById('nombreGrupo').value = "";
+                    await cargarGrupos();
                 } else {
                     const error = await resp.text();
                     status.textContent = "Error: " + error;
@@ -141,6 +170,48 @@
             } catch (err) {
                 status.textContent = "Error de conexión.";
                 status.style.color = "red";
+            }
+        }
+
+        function toggleRename(grupoId) {
+            const form = document.getElementById(`rename-form-${grupoId}`);
+            const input = document.getElementById(`rename-${grupoId}`);
+            const isVisible = form.classList.toggle('visible');
+            if (isVisible) input.focus();
+            document.getElementById(`msg-grupo-${grupoId}`).textContent = '';
+        }
+
+        async function renombrarGrupo(grupoId) {
+            const input = document.getElementById(`rename-${grupoId}`);
+            const mensaje = document.getElementById(`msg-grupo-${grupoId}`);
+            const nombre = input.value.trim();
+
+            if (!nombre) {
+                mensaje.textContent = "El nombre no puede estar vacío.";
+                mensaje.style.color = "red";
+                return;
+            }
+
+            try {
+                const resp = await fetch(`/api/grupos/${grupoId}/nombre`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre: nombre, idUsuario: Number(userId) })
+                });
+
+                if (resp.ok) {
+                    mensaje.textContent = "Nombre actualizado correctamente.";
+                    mensaje.style.color = "green";
+                    document.getElementById(`rename-form-${grupoId}`).classList.remove('visible');
+                    document.getElementById(`nombre-texto-${grupoId}`).textContent = nombre;
+                } else {
+                    const error = await resp.text();
+                    mensaje.textContent = "Error: " + error;
+                    mensaje.style.color = "red";
+                }
+            } catch (err) {
+                mensaje.textContent = "Error de conexión.";
+                mensaje.style.color = "red";
             }
         }
 

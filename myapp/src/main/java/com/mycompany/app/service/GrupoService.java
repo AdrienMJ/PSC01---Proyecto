@@ -45,9 +45,31 @@ public class GrupoService {
      * Útil para mostrar la lista en el Dashboard.
      */
     public List<Grupo> listarGruposPorUsuario(Long idUsuario) {
-        Usuario usuario = usuarioRepository.findById(idUsuario)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        
-        return usuario.getGrupos();
+        if (!usuarioRepository.existsById(idUsuario)) {
+            throw new RuntimeException("Usuario no encontrado");
+        }
+
+        return grupoRepository.findByMiembros_Id(idUsuario);
+    }
+
+    @Transactional
+    public Grupo renombrarGrupo(Long idGrupo, Long idUsuario, String nuevoNombre) {
+        if (nuevoNombre == null || nuevoNombre.trim().isEmpty()) {
+            throw new RuntimeException("El nombre del grupo no puede estar vacío");
+        }
+
+        if (idUsuario == null || !usuarioRepository.existsById(idUsuario)) {
+            throw new RuntimeException("Usuario no encontrado");
+        }
+
+        if (!grupoRepository.existsByIdAndMiembros_Id(idGrupo, idUsuario)) {
+            throw new RuntimeException("No tienes permiso para renombrar este grupo");
+        }
+
+        Grupo grupo = grupoRepository.findById(idGrupo)
+                .orElseThrow(() -> new RuntimeException("Grupo no encontrado con ID: " + idGrupo));
+
+        grupo.setNombre(nuevoNombre.trim());
+        return grupoRepository.save(grupo);
     }
 }

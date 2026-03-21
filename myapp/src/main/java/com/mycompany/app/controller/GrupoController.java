@@ -3,6 +3,7 @@ package com.mycompany.app.controller;
 import com.mycompany.app.entity.Grupo;
 import com.mycompany.app.entity.Moneda;
 import com.mycompany.app.dto.GrupoRequest;
+import com.mycompany.app.dto.RenombrarGrupoRequest;
 import com.mycompany.app.service.GrupoService;
 
 import java.util.List;
@@ -32,13 +33,23 @@ public class GrupoController {
     }
 
     @GetMapping("/usuario/{userId}") //Hace que pueda ver mis grupos una vez este en el "Dashboard"
-    public ResponseEntity<List<Grupo>> listarGrupos(@PathVariable Long userId) {
+    public ResponseEntity<List<Grupo>> listarGrupos(@PathVariable("userId") Long userId) {
         return ResponseEntity.ok(grupoService.listarGruposPorUsuario(userId));
     }
 
     @GetMapping("/monedas") //Hace que se puedan mostrar todos los tipos de moneda que estan en el Enum
     public Moneda[] getMonedas() {
         return Moneda.values(); // Devuelve EURO, DOLAR, LIBRA... automáticamente
+    }
+
+    @PutMapping("/{grupoId}/nombre")
+    public ResponseEntity<?> renombrarGrupo(@PathVariable("grupoId") Long grupoId, @RequestBody RenombrarGrupoRequest request) {
+        try {
+            Grupo grupoActualizado = grupoService.renombrarGrupo(grupoId, request.idUsuario, request.nombre);
+            return ResponseEntity.ok(grupoActualizado);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
     }
 
 }

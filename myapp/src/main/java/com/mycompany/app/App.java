@@ -20,3 +20,6 @@ public class App {
         System.out.println("Gasto creado: " + cena.getConcepto() + " por " + cena.getMonto() + "€");
     }
 }
+
+
+// Usuario persistente: 1@gmail.com , conrtaseña: 1. Este usuario no se crea automaticamente, está hecho en la BD para ver si la persistencia funciona.
