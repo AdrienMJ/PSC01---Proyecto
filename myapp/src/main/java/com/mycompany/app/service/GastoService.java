@@ -1,7 +1,9 @@
 package com.mycompany.app.service;
 
 import com.mycompany.app.entity.Gasto;
+
 import com.mycompany.app.repository.GastoRepository;
+
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,6 +15,7 @@ public class GastoService {
 
     @Autowired
     private GastoRepository gastoRepository;
+    
 
     public Gasto crear(Gasto gasto) throws Exception {
         // Validación básica
@@ -26,4 +29,10 @@ public class GastoService {
     public List<Gasto> listarPorGrupo(Long grupoId) {
         return gastoRepository.findByGrupoId(grupoId);
     }
+    public Gasto obtenerPorId(Long id) throws Exception {
+    return gastoRepository.findById(id)
+        .orElseThrow(() -> new Exception("Gasto no encontrado"));
+}
+  
+
 }

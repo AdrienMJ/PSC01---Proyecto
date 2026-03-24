@@ -13,6 +13,15 @@ public class UsuarioController {
     @Autowired
     private UsuarioService usuarioService;
 
+    @GetMapping
+    public ResponseEntity<?> listarUsuarios() {
+        try {
+            return ResponseEntity.ok(usuarioService.listarTodos());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
     @PostMapping("/register")
     public ResponseEntity<?> registrarUsuario(@RequestBody Usuario usuario) {
         try {

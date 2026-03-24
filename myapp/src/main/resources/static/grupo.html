@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Grupo</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 30px;
+            background-color: #f4f7f6;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        h2, h3 {
+            margin-top: 0;
+        }
+
+        input {
+            padding: 8px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 8px 15px;
+            background: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .btn-edit {
+            background: #007bff;
+        }
+
+        .gasto {
+            background: #fff;
+            border: 1px solid #ddd;
+            margin-bottom: 12px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .gasto-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .monto {
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .editar {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .mensaje {
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .volver {
+            margin-bottom: 15px;
+            display: inline-block;
+            cursor: pointer;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <span class="volver" onclick="volver()">← Volver</span>
+
+    <h2 id="tituloGrupo">Grupo</h2>
+
+    <div>
+        <h3>Crear gasto</h3>
+        <input type="text" id="concepto" placeholder="Concepto">
+        <input type="number" id="monto" placeholder="Monto">
+        <select id="pagador"></select>
+        <button onclick="crearGasto()">Crear</button>
+        <p id="msg" class="mensaje"></p>
+    </div>
+
+    <h3>Gastos</h3>
+    <div id="listaGastos"></div>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const grupoId = params.get('id');
+    const userId = localStorage.getItem('userId');
+
+    if (!grupoId) {
+        window.location.href = "dashboard.html";
+    }
+
+    window.onload = () => {
+        cargarGastos();
+        cargarUsuarios();
+    };
+
+    function volver() {
+        window.location.href = "dashboard.html";
+    }
+
+    async function cargarGastos() {
+        const cont = document.getElementById('listaGastos');
+
+        try {
+            const resp = await fetch(`/api/gastos/grupo/${grupoId}`);
+            const gastos = await resp.json();
+
+            cont.innerHTML = "";
+
+            if (gastos.length === 0) {
+                cont.innerHTML = "<p>No hay gastos todavía.</p>";
+                return;
+            }
+
+            gastos.forEach(g => {
+                const pagadorNombre = g.pagador ? g.pagador.username : 'Sin pagador';
+                cont.innerHTML += `
+                    <div class="gasto">
+                        <div class="gasto-header">
+                            <span>${g.concepto} (pagado por ${pagadorNombre})</span>
+                            <span class="monto">${g.monto}€</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+        } catch (err) {
+            cont.innerHTML = "Error cargando gastos";
+        }
+    }
+    async function cargarUsuarios() {
+    try {
+        const resp = await fetch(`/api/usuarios`);
+        if (!resp.ok) throw new Error("No se pudieron cargar los usuarios");
+
+        const usuarios = await resp.json();
+        const select = document.getElementById('pagador');
+        select.innerHTML = "";
+
+        if (usuarios.length === 0) {
+            const option = document.createElement('option');
+            option.value = "";
+            option.textContent = "No hay usuarios registrados";
+            select.appendChild(option);
+            return;
+        }
+
+        usuarios.forEach(u => {
+            const option = document.createElement('option');
+            option.value = u.id;
+            option.textContent = u.username;
+            select.appendChild(option);
+        });
+
+    } catch (err) {
+        console.error("Error cargando usuarios", err);
+    }
+}
+    async function crearGasto() {
+        const concepto = document.getElementById('concepto').value;
+        const monto = parseFloat(document.getElementById('monto').value);
+        const msg = document.getElementById('msg');
+        const pagadorId = document.getElementById('pagador').value; 
+
+        if (!concepto || !monto) {
+            msg.textContent = "Rellena todos los campos";
+            msg.style.color = "red";
+            return;
+        }
+
+       const payload = {
+          concepto: concepto,
+          monto: monto,
+        pagador: { id: Number(pagadorId) },
+         grupo: { id: Number(grupoId) }
+        };
+
+        try {
+            const resp = await fetch('/api/gastos/crear', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            if (resp.ok) {
+                msg.textContent = "Gasto añadido";
+                msg.style.color = "green";
+                cargarGastos();
+            } else {
+                msg.textContent = "Error al crear gasto";
+                msg.style.color = "red";
+            }
+        } catch {
+            msg.textContent = "Error de conexión";
+            msg.style.color = "red";
+        }
+    }
+</script>
+
+</body>
+</html>

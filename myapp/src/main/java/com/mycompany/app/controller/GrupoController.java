@@ -52,4 +52,14 @@ public class GrupoController {
         }
     }
 
+    @GetMapping("/{grupoId}/usuarios")
+    public ResponseEntity<?> obtenerUsuariosDelGrupo(@PathVariable("grupoId") Long grupoId) {
+        try {
+            Grupo grupo = grupoService.obtenerGrupoPorId(grupoId);
+            return ResponseEntity.ok(grupo.getMiembros());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
 }

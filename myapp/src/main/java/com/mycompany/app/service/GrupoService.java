@@ -72,4 +72,8 @@ public class GrupoService {
         grupo.setNombre(nuevoNombre.trim());
         return grupoRepository.save(grupo);
     }
+    public Grupo obtenerGrupoPorId(Long id) {
+        return grupoRepository.findById(id)
+        .orElseThrow(() -> new RuntimeException("Grupo no encontrado"));
+}
 }

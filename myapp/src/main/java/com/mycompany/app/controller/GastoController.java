@@ -1,7 +1,10 @@
 package com.mycompany.app.controller;
 
 import com.mycompany.app.entity.Gasto;
+import com.mycompany.app.entity.Grupo;
 import com.mycompany.app.service.GastoService;
+import com.mycompany.app.service.GrupoService;
+import com.mycompany.app.repository.GastoRepository;
 
 import java.util.List;
 
@@ -15,6 +18,12 @@ public class GastoController {
 
     @Autowired
     private GastoService gastoService;
+
+    @Autowired
+    private GrupoService grupoService;
+
+    @Autowired
+    private GastoRepository gastoRepository;
 
     /**
      * Crear un gasto
@@ -33,7 +42,7 @@ public class GastoController {
      * Listar gastos de un grupo
      */
     @GetMapping("/grupo/{grupoId}")
-    public ResponseEntity<?> listarPorGrupo(@PathVariable Long grupoId) {
+    public ResponseEntity<?> listarPorGrupo(@PathVariable("grupoId") Long grupoId) {
         try {
             List<Gasto> gastos = gastoService.listarPorGrupo(grupoId);
             return ResponseEntity.ok(gastos);
@@ -41,4 +50,28 @@ public class GastoController {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
+    @PutMapping("/{id}")
+    public ResponseEntity<?> actualizarMonto(@PathVariable Long id, @RequestBody Gasto gasto) {
+        try {
+            Gasto existente = gastoService.obtenerPorId(id);
+            Double nuevoMonto = gasto.getMonto();
+            if (nuevoMonto == null || nuevoMonto <= 0) {
+                return ResponseEntity.badRequest().body("El monto debe ser mayor que 0");
+            }
+            existente.setMonto(nuevoMonto);
+            Gasto actualizado = gastoRepository.save(existente);
+            return ResponseEntity.ok(actualizado);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+@GetMapping("/{grupoId}/usuarios")
+public ResponseEntity<?> obtenerUsuarios(@PathVariable("grupoId") Long grupoId) {
+    try {
+        Grupo grupo = grupoService.obtenerGrupoPorId(grupoId);
+        return ResponseEntity.ok(grupo.getMiembros());
+    } catch (Exception e) {
+        return ResponseEntity.badRequest().body(e.getMessage());
+    }
+}
 }

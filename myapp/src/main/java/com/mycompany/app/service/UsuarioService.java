@@ -35,4 +35,8 @@ public class UsuarioService {
     //si todo esta bien devolvemos el usuario
     return usuario;
 }
+
+    public java.util.List<Usuario> listarTodos() {
+        return usuarioRepository.findAll();
+    }
 }
