@@ -12,8 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@RestController
-@RequestMapping("/api/gastos")
+@RestController // Ruta base para gastos
+@RequestMapping("/api/gastos") 
 public class GastoController {
 
     @Autowired
