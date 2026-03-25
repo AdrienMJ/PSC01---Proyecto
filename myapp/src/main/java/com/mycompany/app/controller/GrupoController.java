@@ -3,6 +3,7 @@ package com.mycompany.app.controller;
 import com.mycompany.app.entity.Grupo;
 import com.mycompany.app.entity.Moneda;
 import com.mycompany.app.dto.GrupoRequest;
+import com.mycompany.app.dto.InvitarUsuarioRequest;
 import com.mycompany.app.dto.RenombrarGrupoRequest;
 import com.mycompany.app.service.GrupoService;
 
@@ -57,6 +58,20 @@ public class GrupoController {
         try {
             Grupo grupo = grupoService.obtenerGrupoPorId(grupoId);
             return ResponseEntity.ok(grupo.getMiembros());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Invitar a un usuario al grupo por email.
+     * POST /api/grupos/{grupoId}/invitar
+     */
+    @PostMapping("/{grupoId}/invitar")
+    public ResponseEntity<?> invitarUsuario(@PathVariable("grupoId") Long grupoId, @RequestBody InvitarUsuarioRequest request) {
+        try {
+            Grupo grupoActualizado = grupoService.invitarUsuario(grupoId, request.email, request.idUsuarioInvitador);
+            return ResponseEntity.ok(grupoActualizado);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
