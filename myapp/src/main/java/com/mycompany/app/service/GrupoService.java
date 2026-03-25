@@ -76,4 +76,41 @@ public class GrupoService {
         return grupoRepository.findById(id)
         .orElseThrow(() -> new RuntimeException("Grupo no encontrado"));
 }
+
+    /**
+     * Invita a un usuario al grupo buscándolo por email.
+     * Solo un miembro existente del grupo puede invitar.
+     */
+    @Transactional
+    public Grupo invitarUsuario(Long idGrupo, String emailInvitado, Long idUsuarioInvitador) {
+        // 1. Validar que el invitador existe
+        if (idUsuarioInvitador == null || !usuarioRepository.existsById(idUsuarioInvitador)) {
+            throw new RuntimeException("Usuario invitador no encontrado");
+        }
+
+        // 2. Validar que el invitador pertenece al grupo
+        if (!grupoRepository.existsByIdAndMiembros_Id(idGrupo, idUsuarioInvitador)) {
+            throw new RuntimeException("No tienes permiso para invitar a este grupo");
+        }
+
+        // 3. Buscar al usuario invitado por email
+        Usuario invitado = usuarioRepository.findByEmail(emailInvitado)
+                .orElseThrow(() -> new RuntimeException("No existe ningún usuario con el email: " + emailInvitado));
+
+        // 4. Obtener el grupo
+        Grupo grupo = grupoRepository.findById(idGrupo)
+                .orElseThrow(() -> new RuntimeException("Grupo no encontrado con ID: " + idGrupo));
+
+        // 5. Comprobar que no sea ya miembro
+        boolean yaEsMiembro = grupo.getMiembros().stream()
+                .anyMatch(m -> m.getId().equals(invitado.getId()));
+        if (yaEsMiembro) {
+            throw new RuntimeException("El usuario ya es miembro de este grupo");
+        }
+
+        // 6. Añadir al grupo
+        grupo.addMiembro(invitado);
+
+        return grupoRepository.save(grupo);
+    }
 }

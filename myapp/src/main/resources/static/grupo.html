@@ -42,6 +42,10 @@
             background: #007bff;
         }
 
+        .btn-invitar {
+            background: #17a2b8;
+        }
+
         .gasto {
             background: #fff;
             border: 1px solid #ddd;
@@ -79,6 +83,23 @@
             cursor: pointer;
             color: #007bff;
         }
+
+        .seccion {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 8px;
+        }
+
+        .miembro {
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            margin: 4px;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -88,7 +109,22 @@
 
     <h2 id="tituloGrupo">Grupo</h2>
 
-    <div>
+    <!-- Sección: Miembros del grupo -->
+    <div class="seccion">
+        <h3>Miembros</h3>
+        <div id="listaMiembros">Cargando miembros...</div>
+    </div>
+
+    <!-- Sección: Invitar usuario -->
+    <div class="seccion">
+        <h3>Invitar persona al grupo</h3>
+        <input type="email" id="emailInvitado" placeholder="Email del usuario a invitar">
+        <button class="btn-invitar" onclick="invitarUsuario()">Invitar</button>
+        <p id="msgInvitar" class="mensaje"></p>
+    </div>
+
+    <!-- Sección: Crear gasto -->
+    <div class="seccion">
         <h3>Crear gasto</h3>
         <input type="text" id="concepto" placeholder="Concepto">
         <input type="number" id="monto" placeholder="Monto">
@@ -111,12 +147,80 @@
     }
 
     window.onload = () => {
+        cargarInfoGrupo();
+        cargarMiembros();
         cargarGastos();
-        cargarUsuarios();
+        cargarUsuariosPagador();
     };
 
     function volver() {
         window.location.href = "dashboard.html";
+    }
+
+    async function cargarInfoGrupo() {
+        // Usamos el endpoint de usuarios del grupo para obtener el nombre del grupo
+        // o podríamos crear uno nuevo. Por ahora ponemos el id.
+        document.getElementById('tituloGrupo').textContent = "Grupo #" + grupoId;
+    }
+
+    async function cargarMiembros() {
+        const cont = document.getElementById('listaMiembros');
+        try {
+            const resp = await fetch(`/api/grupos/${grupoId}/usuarios`);
+            if (!resp.ok) throw new Error("Error cargando miembros");
+            const miembros = await resp.json();
+
+            if (miembros.length === 0) {
+                cont.innerHTML = "<p>No hay miembros.</p>";
+                return;
+            }
+
+            cont.innerHTML = "";
+            miembros.forEach(m => {
+                cont.innerHTML += `<span class="miembro">${m.username} (${m.email})</span>`;
+            });
+        } catch (err) {
+            cont.innerHTML = "Error cargando miembros";
+        }
+    }
+
+    async function invitarUsuario() {
+        const email = document.getElementById('emailInvitado').value.trim();
+        const msg = document.getElementById('msgInvitar');
+
+        if (!email) {
+            msg.textContent = "Introduce el email del usuario a invitar";
+            msg.style.color = "red";
+            return;
+        }
+
+        const payload = {
+            email: email,
+            idUsuarioInvitador: Number(userId)
+        };
+
+        try {
+            const resp = await fetch(`/api/grupos/${grupoId}/invitar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (resp.ok) {
+                msg.textContent = "¡Usuario invitado con éxito!";
+                msg.style.color = "green";
+                document.getElementById('emailInvitado').value = "";
+                cargarMiembros();       // Refresca la lista de miembros
+                cargarUsuariosPagador(); // Refresca el select de pagador
+            } else {
+                const error = await resp.text();
+                msg.textContent = "Error: " + error;
+                msg.style.color = "red";
+            }
+        } catch (err) {
+            msg.textContent = "Error de conexión al servidor.";
+            msg.style.color = "red";
+        }
     }
 
     async function cargarGastos() {
@@ -149,39 +253,42 @@
             cont.innerHTML = "Error cargando gastos";
         }
     }
-    async function cargarUsuarios() {
-    try {
-        const resp = await fetch(`/api/usuarios`);
-        if (!resp.ok) throw new Error("No se pudieron cargar los usuarios");
 
-        const usuarios = await resp.json();
-        const select = document.getElementById('pagador');
-        select.innerHTML = "";
+    async function cargarUsuariosPagador() {
+        try {
+            // Ahora cargamos solo los miembros del grupo, no todos los usuarios
+            const resp = await fetch(`/api/grupos/${grupoId}/usuarios`);
+            if (!resp.ok) throw new Error("No se pudieron cargar los miembros");
 
-        if (usuarios.length === 0) {
-            const option = document.createElement('option');
-            option.value = "";
-            option.textContent = "No hay usuarios registrados";
-            select.appendChild(option);
-            return;
+            const usuarios = await resp.json();
+            const select = document.getElementById('pagador');
+            select.innerHTML = "";
+
+            if (usuarios.length === 0) {
+                const option = document.createElement('option');
+                option.value = "";
+                option.textContent = "No hay miembros en el grupo";
+                select.appendChild(option);
+                return;
+            }
+
+            usuarios.forEach(u => {
+                const option = document.createElement('option');
+                option.value = u.id;
+                option.textContent = u.username;
+                select.appendChild(option);
+            });
+
+        } catch (err) {
+            console.error("Error cargando miembros para pagador", err);
         }
-
-        usuarios.forEach(u => {
-            const option = document.createElement('option');
-            option.value = u.id;
-            option.textContent = u.username;
-            select.appendChild(option);
-        });
-
-    } catch (err) {
-        console.error("Error cargando usuarios", err);
     }
-}
+
     async function crearGasto() {
         const concepto = document.getElementById('concepto').value;
         const monto = parseFloat(document.getElementById('monto').value);
         const msg = document.getElementById('msg');
-        const pagadorId = document.getElementById('pagador').value; 
+        const pagadorId = document.getElementById('pagador').value;
 
         if (!concepto || !monto) {
             msg.textContent = "Rellena todos los campos";
@@ -189,23 +296,25 @@
             return;
         }
 
-       const payload = {
-          concepto: concepto,
-          monto: monto,
-        pagador: { id: Number(pagadorId) },
-         grupo: { id: Number(grupoId) }
+        const payload = {
+            concepto: concepto,
+            monto: monto,
+            pagador: { id: Number(pagadorId) },
+            grupo: { id: Number(grupoId) }
         };
 
         try {
             const resp = await fetch('/api/gastos/crear', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
             if (resp.ok) {
                 msg.textContent = "Gasto añadido";
                 msg.style.color = "green";
+                document.getElementById('concepto').value = "";
+                document.getElementById('monto').value = "";
                 cargarGastos();
             } else {
                 msg.textContent = "Error al crear gasto";
