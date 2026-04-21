@@ -4,3 +4,17 @@ myapp/build/
 .vscode/
 bin/
 *.class
+# Ignorar carpetas de construcción
+build/
+bin/
+.gradle/
+
+# Ignorar base de datos local
+*.db
+myapp-data/
+
+# Ignorar archivos de IDE (opcional pero recomendado)
+.classpath
+.project
+.settings/
+.vscode/
