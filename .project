@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
 	<name>PSC01---Proyecto</name>
-	<comment>Project PSC01---Proyecto created by Buildship.</comment>
+	<comment>Root Gradle project metadata for VS Code Java import.</comment>
 	<projects>
 	</projects>
 	<buildSpec>
@@ -22,7 +22,7 @@
 	</natures>
 	<filteredResources>
 		<filter>
-			<id>1774114208188</id>
+			<id>1776870966459</id>
 			<name></name>
 			<type>30</type>
 			<matcher>

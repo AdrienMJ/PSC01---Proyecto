@@ -31,10 +31,6 @@ dependencies {
     // Base de datos en memoria (H2)
     runtimeOnly 'com.h2database:h2'
     
-    // Lombok para ahorrarte escribir Getters/Setters
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-
     // Para los tests
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }

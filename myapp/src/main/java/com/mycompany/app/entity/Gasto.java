@@ -14,6 +14,7 @@ public class Gasto {
     
     private String concepto;
     private Double monto;
+    @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean pagado = false;
     private LocalDateTime fecha = LocalDateTime.now();
 
