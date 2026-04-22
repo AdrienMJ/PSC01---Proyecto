@@ -14,6 +14,7 @@ public class Gasto {
     
     private String concepto;
     private Double monto;
+    private boolean pagado = false;
     private LocalDateTime fecha = LocalDateTime.now();
 
     @ManyToOne
@@ -40,6 +41,8 @@ public class Gasto {
     public void setConcepto(String concepto) { this.concepto = concepto; }
     public Double getMonto() { return monto; }
     public void setMonto(Double monto) { this.monto = monto; }
+    public boolean isPagado() { return pagado; }
+    public void setPagado(boolean pagado) { this.pagado = pagado; }
     public LocalDateTime getFecha() { return fecha; }
     public Usuario getPagador() { return pagador; }
     public void setPagador(Usuario pagador) { this.pagador = pagador; }

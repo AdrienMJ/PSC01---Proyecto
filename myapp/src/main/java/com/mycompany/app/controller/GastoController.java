@@ -42,14 +42,18 @@ public class GastoController {
      * Listar gastos de un grupo
      */
     @GetMapping("/grupo/{grupoId}")
-    public ResponseEntity<?> listarPorGrupo(@PathVariable("grupoId") Long grupoId) {
+    public ResponseEntity<?> listarPorGrupo(
+            @PathVariable("grupoId") Long grupoId,
+            @RequestParam(value = "ordenar", required = false, defaultValue = "fecha") String ordenar,
+            @RequestParam(value = "direccion", required = false, defaultValue = "desc") String direccion) {
         try {
-            List<Gasto> gastos = gastoService.listarPorGrupo(grupoId);
+            List<Gasto> gastos = gastoService.listarPorGrupo(grupoId, ordenar, direccion);
             return ResponseEntity.ok(gastos);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
+
     @PutMapping("/{id}")
     public ResponseEntity<?> actualizarMonto(@PathVariable Long id, @RequestBody Gasto gasto) {
         try {
@@ -65,8 +69,19 @@ public class GastoController {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
-@GetMapping("/{grupoId}/usuarios")
-public ResponseEntity<?> obtenerUsuarios(@PathVariable("grupoId") Long grupoId) {
+
+    @PutMapping("/{id}/pagado/{usuarioId}")
+    public ResponseEntity<?> marcarComoPagado(@PathVariable Long id, @PathVariable Long usuarioId) {
+        try {
+            Gasto actualizado = gastoService.marcarComoPagado(id, usuarioId);
+            return ResponseEntity.ok(actualizado);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{grupoId}/usuarios")
+    public ResponseEntity<?> obtenerUsuarios(@PathVariable("grupoId") Long grupoId) {
     try {
         Grupo grupo = grupoService.obtenerGrupoPorId(grupoId);
         return ResponseEntity.ok(grupo.getMiembros());

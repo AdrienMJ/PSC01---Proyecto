@@ -133,6 +133,21 @@
         <p id="msg" class="mensaje"></p>
     </div>
 
+    <!-- Sección: Ordenar gastos -->
+    <div class="seccion">
+        <h3>Ordenar gastos</h3>
+        <label for="ordenar">Ordenar por:</label>
+        <select id="ordenar">
+            <option value="fecha">Fecha</option>
+            <option value="monto">Monto</option>
+        </select>
+        <select id="direccion">
+            <option value="desc">Descendente</option>
+            <option value="asc">Ascendente</option>
+        </select>
+        <button onclick="cargarGastos()">Aplicar</button>
+    </div>
+
     <h3>Gastos</h3>
     <div id="listaGastos"></div>
 </div>
@@ -225,9 +240,11 @@
 
     async function cargarGastos() {
         const cont = document.getElementById('listaGastos');
+        const ordenar = document.getElementById('ordenar').value;
+        const direccion = document.getElementById('direccion').value;
 
         try {
-            const resp = await fetch(`/api/gastos/grupo/${grupoId}`);
+            const resp = await fetch(`/api/gastos/grupo/${grupoId}?ordenar=${encodeURIComponent(ordenar)}&direccion=${encodeURIComponent(direccion)}`);
             const gastos = await resp.json();
 
             cont.innerHTML = "";
@@ -239,18 +256,53 @@
 
             gastos.forEach(g => {
                 const pagadorNombre = g.pagador ? g.pagador.username : 'Sin pagador';
+                const fecha = g.fecha ? new Date(g.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '';
+                const esPagador = g.pagador && g.pagador.id === Number(userId);
+                const estadoTexto = g.pagado
+                    ? 'Pagado'
+                    : esPagador
+                        ? 'Eres quien pagó este gasto'
+                        : `Deuda pendiente: ${g.monto}€`;
+                const balanceTexto = g.pagado
+                    ? 'Balance actual: 0€'
+                    : (esPagador ? '' : `Tu balance: ${g.monto}€`);
+                const actionButton = (!g.pagado && !esPagador)
+                    ? `<button class="btn-edit" onclick="marcarGastoPagado(${g.id})">Marcar como pagado</button>`
+                    : '';
+
                 cont.innerHTML += `
                     <div class="gasto">
                         <div class="gasto-header">
                             <span>${g.concepto} (pagado por ${pagadorNombre})</span>
                             <span class="monto">${g.monto}€</span>
                         </div>
+                        <div>Fecha: ${fecha}</div>
+                        <div>${estadoTexto}</div>
+                        ${balanceTexto ? `<div>${balanceTexto}</div>` : ''}
+                        <div class="editar">${actionButton}</div>
                     </div>
                 `;
             });
 
         } catch (err) {
             cont.innerHTML = "Error cargando gastos";
+        }
+    }
+
+    async function marcarGastoPagado(gastoId) {
+        try {
+            const resp = await fetch(`/api/gastos/${gastoId}/pagado/${userId}`, {
+                method: 'PUT'
+            });
+
+            if (resp.ok) {
+                cargarGastos();
+            } else {
+                const error = await resp.text();
+                alert('No se pudo marcar como pagado: ' + error);
+            }
+        } catch (err) {
+            alert('Error de conexión al marcar el gasto como pagado');
         }
     }
 
