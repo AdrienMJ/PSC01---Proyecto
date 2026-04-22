@@ -1,5 +1,6 @@
 package com.mycompany.app.controller;
 
+import com.mycompany.app.dto.ResumenGrupoDTO;
 import com.mycompany.app.entity.Gasto;
 import com.mycompany.app.entity.Grupo;
 import com.mycompany.app.entity.CategoriaGasto;
@@ -47,9 +48,10 @@ public class GastoController {
     public ResponseEntity<?> listarPorGrupo(
             @PathVariable("grupoId") Long grupoId,
             @RequestParam(value = "ordenar", required = false, defaultValue = "fecha") String ordenar,
-            @RequestParam(value = "direccion", required = false, defaultValue = "desc") String direccion) {
+            @RequestParam(value = "direccion", required = false, defaultValue = "desc") String direccion,
+            @RequestParam(value = "categoria", required = false, defaultValue = "TODAS") String categoria) {
         try {
-            List<Gasto> gastos = gastoService.listarPorGrupo(grupoId, ordenar, direccion);
+            List<Gasto> gastos = gastoService.listarPorGrupo(grupoId, ordenar, direccion, categoria);
             return ResponseEntity.ok(gastos);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
@@ -95,5 +97,15 @@ public class GastoController {
     @GetMapping("/categorias")
     public ResponseEntity<?> listarCategorias() {
         return ResponseEntity.ok(Arrays.stream(CategoriaGasto.values()).map(Enum::name).toList());
+    }
+
+    @GetMapping("/grupo/{grupoId}/resumen")
+    public ResponseEntity<?> obtenerResumen(@PathVariable("grupoId") Long grupoId) {
+        try {
+            ResumenGrupoDTO resumen = gastoService.obtenerResumenGrupo(grupoId);
+            return ResponseEntity.ok(resumen);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
     }
 }

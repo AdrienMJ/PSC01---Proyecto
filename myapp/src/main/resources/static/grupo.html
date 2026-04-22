@@ -11,43 +11,103 @@
             --accent-soft: #e5f0ff;
             --ok: #1f9f58;
             --danger: #d73a49;
-            --text: #1f2a37;
             --muted: #5b6676;
             --border: #dfe5ef;
+            --text: #1f2a37;
+            --neutral: #7a8596;
         }
 
         body {
             font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-            padding: 30px;
+            padding: 24px;
+            margin: 0;
             background: linear-gradient(145deg, #f4f8ff 0%, #eaf7f1 100%);
             color: var(--text);
         }
 
         .container {
-            max-width: 860px;
-            margin: auto;
+            max-width: 980px;
+            margin: 0 auto;
             background: var(--card);
-            padding: 24px;
             border-radius: 14px;
+            padding: 22px;
             box-shadow: 0 18px 40px rgba(31, 42, 55, 0.08);
+        }
+
+        .volver {
+            margin-bottom: 12px;
+            display: inline-block;
+            cursor: pointer;
+            color: var(--accent);
+            font-weight: 600;
         }
 
         h2, h3 {
             margin-top: 0;
         }
 
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .tab-btn {
+            background: #fff;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .panel {
+            display: none;
+            margin-top: 10px;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: #fbfdff;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        .seccion {
+            margin-top: 16px;
+            padding: 14px;
+            border-radius: 12px;
+            background: var(--accent-soft);
+            border: 1px solid #d2e6ff;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
         input,
         select {
             padding: 8px;
-            margin-right: 10px;
-            margin-bottom: 10px;
             border: 1px solid var(--border);
             border-radius: 8px;
             background: #fff;
+            min-width: 150px;
         }
 
         button {
-            padding: 8px 15px;
+            padding: 8px 14px;
             background: var(--ok);
             color: white;
             border: none;
@@ -61,12 +121,35 @@
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
         }
 
-        .btn-edit {
+        .btn-accent {
             background: var(--accent);
         }
 
-        .btn-invitar {
+        .btn-info {
             background: #17a2b8;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+        }
+
+        .msg {
+            margin-top: 6px;
+            font-size: 0.9em;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            background: var(--accent);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.9em;
         }
 
         .gasto {
@@ -80,16 +163,16 @@
         .gasto-header {
             display: flex;
             justify-content: space-between;
+            gap: 12px;
             align-items: center;
-            gap: 10px;
         }
 
         .monto {
-            font-weight: bold;
+            font-weight: 700;
             color: var(--ok);
         }
 
-        .gasto-top-row {
+        .tags {
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
@@ -104,73 +187,89 @@
             padding: 4px 10px;
             font-size: 0.85em;
             font-weight: 600;
-            border: 1px solid transparent;
         }
 
         .tag-categoria {
             background: #fff8e8;
             color: #99600f;
-            border-color: #f8db8d;
+            border: 1px solid #f8db8d;
         }
 
         .tag-emote {
             background: #eef7ff;
             color: #1f4d7a;
-            border-color: #c6ddf7;
+            border: 1px solid #c6ddf7;
         }
 
-        .editar {
-            margin-top: 10px;
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+        .tag-participantes {
+            background: #eefcf4;
+            color: #1c7c45;
+            border: 1px solid #bfe8cf;
         }
 
-        .mensaje {
-            font-size: 0.9em;
-            margin-top: 5px;
+        .crear-form {
+            display: none;
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #fff;
         }
 
-        .volver {
-            margin-bottom: 15px;
-            display: inline-block;
-            cursor: pointer;
-            color: var(--accent);
+        .crear-form.open {
+            display: block;
         }
 
-        .seccion {
-            margin-top: 20px;
-            padding: 15px;
-            background: var(--accent-soft);
-            border-radius: 12px;
-            border: 1px solid #d2e6ff;
-        }
-
-        .miembro {
-            display: inline-block;
-            background: var(--accent);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 15px;
-            margin: 4px;
-            font-size: 0.9em;
-        }
-
-        .crear-grid {
+        .grid-2 {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 10px;
         }
 
-        .crear-grid .full {
+        .full {
             grid-column: 1 / -1;
+        }
+
+        .emote-picker-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .selected-emote-preview {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 6px 10px;
+            color: var(--muted);
+            font-size: 0.9em;
+        }
+
+        .selected-emote-preview strong {
+            color: var(--text);
+        }
+
+        .emote-panel {
+            display: none;
+            padding: 10px;
+            border: 1px solid var(--border);
+            background: #fff;
+            border-radius: 10px;
+        }
+
+        .emote-panel.open {
+            display: block;
         }
 
         .emote-grid {
             display: grid;
             grid-template-columns: repeat(10, minmax(0, 1fr));
             gap: 6px;
-            margin-bottom: 8px;
         }
 
         .emote-btn {
@@ -190,22 +289,113 @@
             background: #f1f7ff;
         }
 
+        .participantes-box {
+            display: none;
+            padding: 10px;
+            border: 1px dashed #b4c7de;
+            border-radius: 10px;
+            background: #f8fbff;
+            max-height: 140px;
+            overflow: auto;
+        }
+
+        .participantes-box.open {
+            display: block;
+        }
+
+        .check-item {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.94em;
+        }
+
+        .balance-list,
+        .sol-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .balance-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: var(--card);
+            border-radius: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+        }
+
+        .balance-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.95em;
+            flex-shrink: 0;
+            color: white;
+        }
+
+        .balance-name {
+            flex: 1;
+            font-weight: 600;
+            font-size: 0.97em;
+        }
+
+        .balance-amount {
+            font-weight: 700;
+            font-size: 1.05em;
+        }
+
+        .estado-positivo .balance-avatar { background: var(--ok); }
+        .estado-positivo .balance-amount { color: var(--ok); }
+        .estado-debe .balance-avatar { background: var(--danger); }
+        .estado-debe .balance-amount { color: var(--danger); }
+        .estado-equilibrado .balance-avatar { background: var(--neutral); }
+        .estado-equilibrado .balance-amount { color: var(--neutral); }
+
+        .sol-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            background: var(--card);
+            border-radius: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+            font-size: 0.95em;
+            flex-wrap: wrap;
+        }
+
+        .sol-de, .sol-a { font-weight: 600; }
+        .sol-a { color: var(--ok); }
+
+        .sol-monto {
+            font-weight: 700;
+            color: var(--danger);
+            background: #fdecea;
+            padding: 2px 9px;
+            border-radius: 20px;
+        }
+
+        .sol-flecha {
+            color: var(--muted);
+            font-size: 1em;
+        }
+
         .hint {
             color: var(--muted);
-            font-size: 0.85em;
+            font-size: 0.87em;
             margin: 2px 0 8px;
         }
 
-        @media (max-width: 800px) {
-            body {
-                padding: 16px;
-            }
-
-            .container {
-                padding: 16px;
-            }
-
-            .crear-grid {
+        @media (max-width: 900px) {
+            .grid-2 {
                 grid-template-columns: 1fr;
             }
 
@@ -222,54 +412,110 @@
 
     <h2 id="tituloGrupo">Grupo</h2>
 
-    <!-- Sección: Miembros del grupo -->
-    <div class="seccion">
-        <h3>Miembros</h3>
-        <div id="listaMiembros">Cargando miembros...</div>
+    <div class="tabs">
+        <button class="tab-btn active" id="tabBtnResumen" onclick="mostrarTab('resumen')">Resumen</button>
+        <button class="tab-btn" id="tabBtnMiembros" onclick="mostrarTab('miembros')">Miembros</button>
+        <button class="tab-btn" id="tabBtnGastos" onclick="mostrarTab('gastos')">Gastos</button>
     </div>
 
-    <!-- Sección: Invitar usuario -->
-    <div class="seccion">
-        <h3>Invitar persona al grupo</h3>
-        <input type="email" id="emailInvitado" placeholder="Email del usuario a invitar">
-        <button class="btn-invitar" onclick="invitarUsuario()">Invitar</button>
-        <p id="msgInvitar" class="mensaje"></p>
-    </div>
-
-    <!-- Sección: Crear gasto -->
-    <div class="seccion">
-        <h3>Crear gasto</h3>
-        <div class="crear-grid">
-            <input type="text" id="concepto" placeholder="Concepto">
-            <input type="number" id="monto" placeholder="Monto">
-            <select id="pagador"></select>
-            <select id="categoria"></select>
-            <div class="full">
-                <div class="hint">Selecciona un emote para este gasto</div>
-                <div id="emoteGrid" class="emote-grid"></div>
+    <div id="tabResumen" class="panel active">
+        <div class="seccion">
+            <div class="row" style="justify-content: space-between;">
+                <h3 style="margin: 0;">Balance del grupo</h3>
+                <button class="btn-accent" onclick="cargarResumen()">Actualizar resumen</button>
             </div>
-            <button class="full" onclick="crearGasto()">Crear</button>
+            <p class="hint">Verás quién está en positivo, equilibrado o en deuda.</p>
+            <ul id="listaBalances" class="balance-list"></ul>
         </div>
-        <p id="msg" class="mensaje"></p>
+
+        <div class="seccion">
+            <h3>Solución más sencilla</h3>
+            <p class="hint">Transferencias mínimas recomendadas para equilibrar deudas.</p>
+            <ul id="listaSoluciones" class="sol-list"></ul>
+        </div>
     </div>
 
-    <!-- Sección: Ordenar gastos -->
-    <div class="seccion">
-        <h3>Ordenar gastos</h3>
-        <label for="ordenar">Ordenar por:</label>
-        <select id="ordenar">
-            <option value="fecha">Fecha</option>
-            <option value="monto">Monto</option>
-        </select>
-        <select id="direccion">
-            <option value="desc">Descendente</option>
-            <option value="asc">Ascendente</option>
-        </select>
-        <button onclick="cargarGastos()">Aplicar</button>
+    <div id="tabMiembros" class="panel">
+        <div class="seccion">
+            <h3>Miembros</h3>
+            <div id="listaMiembros" class="chips">Cargando miembros...</div>
+        </div>
+
+        <div class="seccion">
+            <h3>Invitar persona al grupo</h3>
+            <div class="row">
+                <input type="email" id="emailInvitado" placeholder="Email del usuario a invitar">
+                <button class="btn-info" onclick="invitarUsuario()">Invitar</button>
+            </div>
+            <p id="msgInvitar" class="msg"></p>
+        </div>
     </div>
 
-    <h3>Gastos</h3>
-    <div id="listaGastos"></div>
+    <div id="tabGastos" class="panel">
+        <div class="seccion">
+            <div class="row" style="justify-content: space-between;">
+                <h3 style="margin: 0;">Gastos</h3>
+                <button class="btn-accent" onclick="toggleCrearGasto()">Crear gasto</button>
+            </div>
+
+            <div id="crearGastoForm" class="crear-form">
+                <div class="grid-2">
+                    <input type="text" id="concepto" placeholder="Concepto">
+                    <input type="number" id="monto" placeholder="Monto">
+                    <select id="pagador"></select>
+                    <select id="categoria"></select>
+
+                    <div class="full">
+                        <label>
+                            <input type="checkbox" id="repartoGeneral" checked onchange="toggleParticipantes()">
+                            Gasto general (se reparte entre todos)
+                        </label>
+                    </div>
+
+                    <div class="full participantes-box" id="participantesBox"></div>
+
+                    <div class="full">
+                        <div class="emote-picker-header">
+                            <button type="button" class="btn-accent" onclick="toggleEmotePicker()">Elegir emote</button>
+                            <span class="selected-emote-preview">Seleccionado: <strong id="selectedEmotePreview">🍽️</strong></span>
+                        </div>
+                        <div class="hint" id="emoteHint">Pulsa el botón para abrir la lista de emotes.</div>
+                        <div id="emotePanel" class="emote-panel">
+                            <div id="emoteGrid" class="emote-grid"></div>
+                        </div>
+                    </div>
+
+                    <button class="full" onclick="crearGasto()">Guardar gasto</button>
+                </div>
+                <p id="msgGasto" class="msg"></p>
+            </div>
+        </div>
+
+        <div class="seccion">
+            <h3>Filtrar y ordenar</h3>
+            <div class="row">
+                <label for="filtroCategoria">Categoría</label>
+                <select id="filtroCategoria">
+                    <option value="TODAS">Todas</option>
+                </select>
+
+                <label for="ordenar">Ordenar por</label>
+                <select id="ordenar">
+                    <option value="fecha">Fecha</option>
+                    <option value="monto">Monto</option>
+                </select>
+
+                <select id="direccion">
+                    <option value="desc">Descendente</option>
+                    <option value="asc">Ascendente</option>
+                </select>
+
+                <button class="btn-accent" onclick="cargarGastos()">Aplicar</button>
+            </div>
+        </div>
+
+        <div id="listaGastos"></div>
+    </div>
 </div>
 
 <script>
@@ -289,26 +535,59 @@
         '🌮', '🍣', '🍜', '🍩', '🧁', '🚆', '🚇', '🚢', '🛩️', '🅿️'
     ];
 
-    let selectedEmote = '🍽️';
-
     const params = new URLSearchParams(window.location.search);
     const grupoId = params.get('id');
-    const userId = localStorage.getItem('userId');
+    const userId = Number(localStorage.getItem('userId'));
+
+    let selectedEmote = '';
+    let emotePickerOpen = false;
+    let miembrosGrupo = [];
 
     if (!grupoId) {
-        window.location.href = "dashboard.html";
+        window.location.href = 'dashboard.html';
     }
 
     window.onload = () => {
-        cargarCategorias();
+        document.getElementById('tituloGrupo').textContent = `Grupo #${grupoId}`;
+        cargarCategoriasForm();
+        cargarCategoriasFiltro();
         renderEmotePicker();
-        cargarInfoGrupo();
-        cargarMiembros();
+        mostrarTab('resumen');
+
+        cargarMiembros().then(() => {
+            cargarUsuariosPagador();
+            renderParticipantesBox();
+        });
+
         cargarGastos();
-        cargarUsuariosPagador();
+        cargarResumen();
     };
 
-    function cargarCategorias() {
+    function volver() {
+        window.location.href = 'dashboard.html';
+    }
+
+    function mostrarTab(tab) {
+        const tabs = ['resumen', 'miembros', 'gastos'];
+        tabs.forEach(t => {
+            document.getElementById(`tab${capitalizar(t)}`).classList.toggle('active', t === tab);
+            document.getElementById(`tabBtn${capitalizar(t)}`).classList.toggle('active', t === tab);
+        });
+
+        if (tab === 'resumen') {
+            cargarResumen();
+        }
+    }
+
+    function capitalizar(txt) {
+        return txt.charAt(0).toUpperCase() + txt.slice(1);
+    }
+
+    function toggleCrearGasto() {
+        document.getElementById('crearGastoForm').classList.toggle('open');
+    }
+
+    function cargarCategoriasForm() {
         const select = document.getElementById('categoria');
         select.innerHTML = '';
         CATEGORIAS.forEach(c => {
@@ -317,10 +596,108 @@
             option.textContent = c.label;
             select.appendChild(option);
         });
+        select.value = 'COMIDA';
+    }
+
+    function cargarCategoriasFiltro() {
+        const select = document.getElementById('filtroCategoria');
+        CATEGORIAS.forEach(c => {
+            const option = document.createElement('option');
+            option.value = c.value;
+            option.textContent = c.label;
+            select.appendChild(option);
+        });
+    }
+
+    async function cargarMiembros() {
+        const cont = document.getElementById('listaMiembros');
+        try {
+            const resp = await fetch(`/api/grupos/${grupoId}/usuarios`);
+            if (!resp.ok) throw new Error('Error cargando miembros');
+
+            miembrosGrupo = await resp.json();
+
+            if (miembrosGrupo.length === 0) {
+                cont.innerHTML = '<p>No hay miembros.</p>';
+                return;
+            }
+
+            cont.innerHTML = '';
+            miembrosGrupo.forEach(m => {
+                cont.innerHTML += `<span class="chip">${m.username} (${m.email})</span>`;
+            });
+        } catch (err) {
+            cont.innerHTML = 'Error cargando miembros';
+        }
+    }
+
+    function renderParticipantesBox() {
+        const box = document.getElementById('participantesBox');
+        box.innerHTML = '';
+
+        if (miembrosGrupo.length === 0) {
+            box.innerHTML = '<div class="hint">No hay miembros para seleccionar.</div>';
+            return;
+        }
+
+        miembrosGrupo.forEach(m => {
+            const id = `part_${m.id}`;
+            box.innerHTML += `
+                <label class="check-item" for="${id}">
+                    <input type="checkbox" id="${id}" value="${m.id}">
+                    ${m.username}
+                </label>
+            `;
+        });
+    }
+
+    function toggleParticipantes() {
+        const general = document.getElementById('repartoGeneral').checked;
+        const box = document.getElementById('participantesBox');
+        box.classList.toggle('open', !general);
+    }
+
+    function participantesSeleccionados() {
+        return Array.from(document.querySelectorAll('#participantesBox input[type="checkbox"]:checked'))
+            .map(c => Number(c.value));
+    }
+
+    async function cargarUsuariosPagador() {
+        const select = document.getElementById('pagador');
+        select.innerHTML = '';
+
+        if (miembrosGrupo.length === 0) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No hay miembros en el grupo';
+            select.appendChild(option);
+            return;
+        }
+
+        miembrosGrupo.forEach(u => {
+            const option = document.createElement('option');
+            option.value = u.id;
+            option.textContent = u.username;
+            select.appendChild(option);
+        });
+
+        if (userId) {
+            select.value = String(userId);
+        }
     }
 
     function renderEmotePicker() {
         const grid = document.getElementById('emoteGrid');
+        const panel = document.getElementById('emotePanel');
+        const preview = document.getElementById('selectedEmotePreview');
+        const hint = document.getElementById('emoteHint');
+
+        panel.classList.toggle('open', emotePickerOpen);
+        preview.textContent = selectedEmote || 'Ninguno';
+        hint.textContent = emotePickerOpen
+            ? 'Elige un emote y se cerrará la lista automáticamente.'
+            : 'Pulsa el botón para abrir la lista de emotes.';
+
         grid.innerHTML = '';
         EMOTES.forEach(emote => {
             const btn = document.createElement('button');
@@ -330,46 +707,21 @@
             btn.title = `Seleccionar ${emote}`;
             btn.onclick = () => {
                 selectedEmote = emote;
+                emotePickerOpen = false;
                 renderEmotePicker();
             };
             grid.appendChild(btn);
         });
     }
 
+    function toggleEmotePicker() {
+        emotePickerOpen = !emotePickerOpen;
+        renderEmotePicker();
+    }
+
     function categoriaLabel(categoria) {
-        const encontrada = CATEGORIAS.find(c => c.value === categoria);
-        return encontrada ? encontrada.label : 'Otros';
-    }
-
-    function volver() {
-        window.location.href = "dashboard.html";
-    }
-
-    async function cargarInfoGrupo() {
-        // Usamos el endpoint de usuarios del grupo para obtener el nombre del grupo
-        // o podríamos crear uno nuevo. Por ahora ponemos el id.
-        document.getElementById('tituloGrupo').textContent = "Grupo #" + grupoId;
-    }
-
-    async function cargarMiembros() {
-        const cont = document.getElementById('listaMiembros');
-        try {
-            const resp = await fetch(`/api/grupos/${grupoId}/usuarios`);
-            if (!resp.ok) throw new Error("Error cargando miembros");
-            const miembros = await resp.json();
-
-            if (miembros.length === 0) {
-                cont.innerHTML = "<p>No hay miembros.</p>";
-                return;
-            }
-
-            cont.innerHTML = "";
-            miembros.forEach(m => {
-                cont.innerHTML += `<span class="miembro">${m.username} (${m.email})</span>`;
-            });
-        } catch (err) {
-            cont.innerHTML = "Error cargando miembros";
-        }
+        const c = CATEGORIAS.find(x => x.value === categoria);
+        return c ? c.label : 'Otros';
     }
 
     async function invitarUsuario() {
@@ -377,14 +729,14 @@
         const msg = document.getElementById('msgInvitar');
 
         if (!email) {
-            msg.textContent = "Introduce el email del usuario a invitar";
-            msg.style.color = "red";
+            msg.textContent = 'Introduce el email del usuario a invitar';
+            msg.style.color = 'red';
             return;
         }
 
         const payload = {
             email: email,
-            idUsuarioInvitador: Number(userId)
+            idUsuarioInvitador: userId
         };
 
         try {
@@ -395,55 +747,130 @@
             });
 
             if (resp.ok) {
-                msg.textContent = "¡Usuario invitado con éxito!";
-                msg.style.color = "green";
-                document.getElementById('emailInvitado').value = "";
-                cargarMiembros();       // Refresca la lista de miembros
-                cargarUsuariosPagador(); // Refresca el select de pagador
+                msg.textContent = '¡Usuario invitado con éxito!';
+                msg.style.color = 'green';
+                document.getElementById('emailInvitado').value = '';
+                await cargarMiembros();
+                cargarUsuariosPagador();
+                renderParticipantesBox();
+                cargarResumen();
             } else {
                 const error = await resp.text();
-                msg.textContent = "Error: " + error;
-                msg.style.color = "red";
+                msg.textContent = 'Error: ' + error;
+                msg.style.color = 'red';
             }
         } catch (err) {
-            msg.textContent = "Error de conexión al servidor.";
-            msg.style.color = "red";
+            msg.textContent = 'Error de conexión al servidor.';
+            msg.style.color = 'red';
         }
+    }
+
+    async function crearGasto() {
+        const concepto = document.getElementById('concepto').value.trim();
+        const monto = parseFloat(document.getElementById('monto').value);
+        const categoria = document.getElementById('categoria').value;
+        const pagadorId = Number(document.getElementById('pagador').value);
+        const repartoGeneral = document.getElementById('repartoGeneral').checked;
+        const msg = document.getElementById('msgGasto');
+
+        if (!concepto || !monto || !categoria || !pagadorId) {
+            msg.textContent = 'Rellena los campos obligatorios';
+            msg.style.color = 'red';
+            return;
+        }
+
+        const idsParticipantes = participantesSeleccionados();
+        if (!repartoGeneral && idsParticipantes.length === 0) {
+            msg.textContent = 'Selecciona al menos un participante o marca gasto general';
+            msg.style.color = 'red';
+            return;
+        }
+
+        const payload = {
+            concepto,
+            monto,
+            categoria,
+            repartoGeneral,
+            pagador: { id: pagadorId },
+            grupo: { id: Number(grupoId) },
+            participantes: repartoGeneral ? [] : idsParticipantes.map(id => ({ id }))
+        };
+
+        if (selectedEmote) {
+            payload.emote = selectedEmote;
+        }
+
+        try {
+            const resp = await fetch('/api/gastos/crear', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (resp.ok) {
+                msg.textContent = 'Gasto añadido';
+                msg.style.color = 'green';
+                document.getElementById('concepto').value = '';
+                document.getElementById('monto').value = '';
+                document.getElementById('categoria').value = 'COMIDA';
+                document.getElementById('repartoGeneral').checked = true;
+                toggleParticipantes();
+                document.querySelectorAll('#participantesBox input[type="checkbox"]').forEach(c => c.checked = false);
+                selectedEmote = '';
+                renderEmotePicker();
+                await cargarGastos();
+                await cargarResumen();
+            } else {
+                const error = await resp.text();
+                msg.textContent = 'Error al crear gasto: ' + error;
+                msg.style.color = 'red';
+            }
+        } catch {
+            msg.textContent = 'Error de conexión';
+            msg.style.color = 'red';
+        }
+    }
+
+    function participantesTexto(gasto) {
+        if (gasto.repartoGeneral || !gasto.participantes || gasto.participantes.length === 0) {
+            return 'General (todos)';
+        }
+
+        const nombres = gasto.participantes.map(p => p.username);
+        return nombres.join(', ');
     }
 
     async function cargarGastos() {
         const cont = document.getElementById('listaGastos');
         const ordenar = document.getElementById('ordenar').value;
         const direccion = document.getElementById('direccion').value;
+        const categoria = document.getElementById('filtroCategoria').value;
 
         try {
-            const resp = await fetch(`/api/gastos/grupo/${grupoId}?ordenar=${encodeURIComponent(ordenar)}&direccion=${encodeURIComponent(direccion)}`);
-            const gastos = await resp.json();
+            const resp = await fetch(`/api/gastos/grupo/${grupoId}?ordenar=${encodeURIComponent(ordenar)}&direccion=${encodeURIComponent(direccion)}&categoria=${encodeURIComponent(categoria)}`);
+            if (!resp.ok) throw new Error('No se pudieron cargar gastos');
 
-            cont.innerHTML = "";
+            const gastos = await resp.json();
+            cont.innerHTML = '';
 
             if (gastos.length === 0) {
-                cont.innerHTML = "<p>No hay gastos todavía.</p>";
+                cont.innerHTML = '<p>No hay gastos para este filtro.</p>';
                 return;
             }
 
             gastos.forEach(g => {
                 const pagadorNombre = g.pagador ? g.pagador.username : 'Sin pagador';
                 const fecha = g.fecha ? new Date(g.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '';
-                const categoria = g.categoria || 'OTROS';
-                const emote = g.emote || '🧾';
-                const esPagador = g.pagador && g.pagador.id === Number(userId);
+                const esPagador = g.pagador && g.pagador.id === userId;
                 const estadoTexto = g.pagado
                     ? 'Pagado'
                     : esPagador
                         ? 'Eres quien pagó este gasto'
                         : `Deuda pendiente: ${g.monto}€`;
-                const balanceTexto = g.pagado
-                    ? 'Balance actual: 0€'
-                    : (esPagador ? '' : `Tu balance: ${g.monto}€`);
                 const actionButton = (!g.pagado && !esPagador)
-                    ? `<button class="btn-edit" onclick="marcarGastoPagado(${g.id})">Marcar como pagado</button>`
+                    ? `<button class="btn-accent" onclick="marcarGastoPagado(${g.id})">Marcar como pagado</button>`
                     : '';
+                const categoriaTexto = `${g.emote ? `${g.emote} ` : ''}${categoriaLabel(g.categoria || 'OTROS')}`;
 
                 cont.innerHTML += `
                     <div class="gasto">
@@ -451,20 +878,18 @@
                             <span>${g.concepto} (pagado por ${pagadorNombre})</span>
                             <span class="monto">${g.monto}€</span>
                         </div>
-                        <div class="gasto-top-row">
-                            <span class="tag tag-categoria">🏷️ ${categoriaLabel(categoria)}</span>
-                            <span class="tag tag-emote">${emote} Emote</span>
+                        <div class="tags">
+                            <span class="tag tag-categoria">🏷️ ${categoriaTexto}</span>
+                            <span class="tag tag-participantes">👥 ${participantesTexto(g)}</span>
                         </div>
                         <div>Fecha: ${fecha}</div>
                         <div>${estadoTexto}</div>
-                        ${balanceTexto ? `<div>${balanceTexto}</div>` : ''}
-                        <div class="editar">${actionButton}</div>
+                        <div class="row" style="margin-top: 8px;">${actionButton}</div>
                     </div>
                 `;
             });
-
         } catch (err) {
-            cont.innerHTML = "Error cargando gastos";
+            cont.innerHTML = 'Error cargando gastos';
         }
     }
 
@@ -475,7 +900,8 @@
             });
 
             if (resp.ok) {
-                cargarGastos();
+                await cargarGastos();
+                await cargarResumen();
             } else {
                 const error = await resp.text();
                 alert('No se pudo marcar como pagado: ' + error);
@@ -485,82 +911,36 @@
         }
     }
 
-    async function cargarUsuariosPagador() {
+    async function cargarResumen() {
+        const balancesCont = document.getElementById('listaBalances');
+        const solCont = document.getElementById('listaSoluciones');
+
         try {
-            // Ahora cargamos solo los miembros del grupo, no todos los usuarios
-            const resp = await fetch(`/api/grupos/${grupoId}/usuarios`);
-            if (!resp.ok) throw new Error("No se pudieron cargar los miembros");
+            const resp = await fetch(`/api/gastos/grupo/${grupoId}/resumen`);
+            if (!resp.ok) throw new Error('No se pudo cargar el resumen');
+            const data = await resp.json();
 
-            const usuarios = await resp.json();
-            const select = document.getElementById('pagador');
-            select.innerHTML = "";
+            balancesCont.innerHTML = '';
+            (data.balances || []).forEach(b => {
+                const clase = b.estado === 'positivo' ? 'estado-positivo' : (b.estado === 'debe' ? 'estado-debe' : 'estado-equilibrado');
+                const inicial = b.username ? b.username[0].toUpperCase() : '?';
+                const monto = b.estado === 'positivo' ? `+${b.balance.toFixed(2)}€` : (b.estado === 'debe' ? `${b.balance.toFixed(2)}€` : '0.00€');
+                balancesCont.innerHTML += `<li class="balance-card ${clase}"><div class="balance-avatar">${inicial}</div><span class="balance-name">${b.username}</span><span class="balance-amount">${monto}</span></li>`;
+            });
 
-            if (usuarios.length === 0) {
-                const option = document.createElement('option');
-                option.value = "";
-                option.textContent = "No hay miembros en el grupo";
-                select.appendChild(option);
+            solCont.innerHTML = '';
+            const soluciones = data.soluciones || [];
+            if (soluciones.length === 0) {
+                solCont.innerHTML = '<li style="list-style:none;color:var(--muted);font-size:0.93em;">✅ No hacen falta transferencias, el grupo está equilibrado.</li>';
                 return;
             }
 
-            usuarios.forEach(u => {
-                const option = document.createElement('option');
-                option.value = u.id;
-                option.textContent = u.username;
-                select.appendChild(option);
+            soluciones.forEach(s => {
+                solCont.innerHTML += `<li class="sol-card"><span class="sol-de">${s.deUsername}</span><span class="sol-flecha">→</span><span class="sol-monto">${s.monto.toFixed(2)}€</span><span class="sol-flecha">→</span><span class="sol-a">${s.aUsername}</span></li>`;
             });
-
         } catch (err) {
-            console.error("Error cargando miembros para pagador", err);
-        }
-    }
-
-    async function crearGasto() {
-        const concepto = document.getElementById('concepto').value.trim();
-        const monto = parseFloat(document.getElementById('monto').value);
-        const categoria = document.getElementById('categoria').value;
-        const msg = document.getElementById('msg');
-        const pagadorId = document.getElementById('pagador').value;
-
-        if (!concepto || !monto || !categoria || !selectedEmote) {
-            msg.textContent = "Rellena todos los campos";
-            msg.style.color = "red";
-            return;
-        }
-
-        const payload = {
-            concepto: concepto,
-            monto: monto,
-            categoria: categoria,
-            emote: selectedEmote,
-            pagador: { id: Number(pagadorId) },
-            grupo: { id: Number(grupoId) }
-        };
-
-        try {
-            const resp = await fetch('/api/gastos/crear', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (resp.ok) {
-                msg.textContent = "Gasto añadido";
-                msg.style.color = "green";
-                document.getElementById('concepto').value = "";
-                document.getElementById('monto').value = "";
-                document.getElementById('categoria').value = 'COMIDA';
-                selectedEmote = '🍽️';
-                renderEmotePicker();
-                cargarGastos();
-            } else {
-                const error = await resp.text();
-                msg.textContent = "Error al crear gasto: " + error;
-                msg.style.color = "red";
-            }
-        } catch {
-            msg.textContent = "Error de conexión";
-            msg.style.color = "red";
+            balancesCont.innerHTML = '<li>Error cargando balance.</li>';
+            solCont.innerHTML = '<li>Error cargando solución.</li>';
         }
     }
 </script>
