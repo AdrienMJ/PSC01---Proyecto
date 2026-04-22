@@ -2,11 +2,13 @@ package com.mycompany.app.controller;
 
 import com.mycompany.app.entity.Gasto;
 import com.mycompany.app.entity.Grupo;
+import com.mycompany.app.entity.CategoriaGasto;
 import com.mycompany.app.service.GastoService;
 import com.mycompany.app.service.GrupoService;
 import com.mycompany.app.repository.GastoRepository;
 
 import java.util.List;
+import java.util.Arrays;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -89,4 +91,9 @@ public class GastoController {
         return ResponseEntity.badRequest().body(e.getMessage());
     }
 }
+
+    @GetMapping("/categorias")
+    public ResponseEntity<?> listarCategorias() {
+        return ResponseEntity.ok(Arrays.stream(CategoriaGasto.values()).map(Enum::name).toList());
+    }
 }

@@ -14,6 +14,11 @@ public class Gasto {
     
     private String concepto;
     private Double monto;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private CategoriaGasto categoria = CategoriaGasto.OTROS;
+    @Column(length = 8)
+    private String emote = "🧾";
     @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean pagado = false;
     private LocalDateTime fecha = LocalDateTime.now();
@@ -42,6 +47,10 @@ public class Gasto {
     public void setConcepto(String concepto) { this.concepto = concepto; }
     public Double getMonto() { return monto; }
     public void setMonto(Double monto) { this.monto = monto; }
+    public CategoriaGasto getCategoria() { return categoria; }
+    public void setCategoria(CategoriaGasto categoria) { this.categoria = categoria; }
+    public String getEmote() { return emote; }
+    public void setEmote(String emote) { this.emote = emote; }
     public boolean isPagado() { return pagado; }
     public void setPagado(boolean pagado) { this.pagado = pagado; }
     public LocalDateTime getFecha() { return fecha; }

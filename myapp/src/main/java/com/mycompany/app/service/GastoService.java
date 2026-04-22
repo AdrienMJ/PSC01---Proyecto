@@ -1,6 +1,7 @@
 package com.mycompany.app.service;
 
 import com.mycompany.app.entity.Gasto;
+import com.mycompany.app.entity.CategoriaGasto;
 import com.mycompany.app.repository.GastoRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,14 @@ public class GastoService {
         // Validación básica
         if (gasto.getMonto() == null || gasto.getMonto() <= 0) {
             throw new Exception("El monto debe ser mayor que 0");
+        }
+
+        if (gasto.getCategoria() == null) {
+            gasto.setCategoria(CategoriaGasto.OTROS);
+        }
+
+        if (gasto.getEmote() == null || gasto.getEmote().isBlank()) {
+            gasto.setEmote("🧾");
         }
 
         return gastoRepository.save(gasto);

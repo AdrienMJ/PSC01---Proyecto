@@ -4,42 +4,65 @@
     <meta charset="UTF-8">
     <title>Grupo</title>
     <style>
+        :root {
+            --bg: #f6f8ff;
+            --card: #ffffff;
+            --accent: #1f7ae0;
+            --accent-soft: #e5f0ff;
+            --ok: #1f9f58;
+            --danger: #d73a49;
+            --text: #1f2a37;
+            --muted: #5b6676;
+            --border: #dfe5ef;
+        }
+
         body {
-            font-family: sans-serif;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
             padding: 30px;
-            background-color: #f4f7f6;
+            background: linear-gradient(145deg, #f4f8ff 0%, #eaf7f1 100%);
+            color: var(--text);
         }
 
         .container {
-            max-width: 720px;
+            max-width: 860px;
             margin: auto;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background: var(--card);
+            padding: 24px;
+            border-radius: 14px;
+            box-shadow: 0 18px 40px rgba(31, 42, 55, 0.08);
         }
 
         h2, h3 {
             margin-top: 0;
         }
 
-        input {
+        input,
+        select {
             padding: 8px;
             margin-right: 10px;
             margin-bottom: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
         }
 
         button {
             padding: 8px 15px;
-            background: #28a745;
+            background: var(--ok);
             color: white;
             border: none;
             cursor: pointer;
-            border-radius: 4px;
+            border-radius: 8px;
+            transition: transform 0.14s ease, box-shadow 0.14s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
         }
 
         .btn-edit {
-            background: #007bff;
+            background: var(--accent);
         }
 
         .btn-invitar {
@@ -47,22 +70,53 @@
         }
 
         .gasto {
-            background: #fff;
-            border: 1px solid #ddd;
+            background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+            border: 1px solid var(--border);
             margin-bottom: 12px;
             padding: 12px;
-            border-radius: 8px;
+            border-radius: 12px;
         }
 
         .gasto-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 10px;
         }
 
         .monto {
             font-weight: bold;
-            color: #28a745;
+            color: var(--ok);
+        }
+
+        .gasto-top-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 8px 0;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.85em;
+            font-weight: 600;
+            border: 1px solid transparent;
+        }
+
+        .tag-categoria {
+            background: #fff8e8;
+            color: #99600f;
+            border-color: #f8db8d;
+        }
+
+        .tag-emote {
+            background: #eef7ff;
+            color: #1f4d7a;
+            border-color: #c6ddf7;
         }
 
         .editar {
@@ -81,24 +135,83 @@
             margin-bottom: 15px;
             display: inline-block;
             cursor: pointer;
-            color: #007bff;
+            color: var(--accent);
         }
 
         .seccion {
             margin-top: 20px;
             padding: 15px;
-            background: #e9ecef;
-            border-radius: 8px;
+            background: var(--accent-soft);
+            border-radius: 12px;
+            border: 1px solid #d2e6ff;
         }
 
         .miembro {
             display: inline-block;
-            background: #007bff;
+            background: var(--accent);
             color: white;
             padding: 4px 12px;
             border-radius: 15px;
             margin: 4px;
             font-size: 0.9em;
+        }
+
+        .crear-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .crear-grid .full {
+            grid-column: 1 / -1;
+        }
+
+        .emote-grid {
+            display: grid;
+            grid-template-columns: repeat(10, minmax(0, 1fr));
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .emote-btn {
+            background: #fff;
+            color: #111;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px;
+            font-size: 1.1rem;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .emote-btn.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(31, 122, 224, 0.2);
+            background: #f1f7ff;
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 0.85em;
+            margin: 2px 0 8px;
+        }
+
+        @media (max-width: 800px) {
+            body {
+                padding: 16px;
+            }
+
+            .container {
+                padding: 16px;
+            }
+
+            .crear-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .emote-grid {
+                grid-template-columns: repeat(7, minmax(0, 1fr));
+            }
         }
     </style>
 </head>
@@ -126,10 +239,17 @@
     <!-- Sección: Crear gasto -->
     <div class="seccion">
         <h3>Crear gasto</h3>
-        <input type="text" id="concepto" placeholder="Concepto">
-        <input type="number" id="monto" placeholder="Monto">
-        <select id="pagador"></select>
-        <button onclick="crearGasto()">Crear</button>
+        <div class="crear-grid">
+            <input type="text" id="concepto" placeholder="Concepto">
+            <input type="number" id="monto" placeholder="Monto">
+            <select id="pagador"></select>
+            <select id="categoria"></select>
+            <div class="full">
+                <div class="hint">Selecciona un emote para este gasto</div>
+                <div id="emoteGrid" class="emote-grid"></div>
+            </div>
+            <button class="full" onclick="crearGasto()">Crear</button>
+        </div>
         <p id="msg" class="mensaje"></p>
     </div>
 
@@ -153,6 +273,24 @@
 </div>
 
 <script>
+    const CATEGORIAS = [
+        { value: 'COMIDA', label: 'Comida' },
+        { value: 'TRANSPORTE', label: 'Transporte' },
+        { value: 'OCIO', label: 'Ocio' },
+        { value: 'VIVIENDA', label: 'Vivienda' },
+        { value: 'OTROS', label: 'Otros' }
+    ];
+
+    const EMOTES = [
+        '🍽️', '🍕', '🍔', '🥗', '☕', '🍺', '🚗', '🚌', '🚕', '🚲',
+        '🛴', '⛽', '🎬', '🎮', '🎟️', '🎵', '📚', '🏠', '🛋️', '🧾',
+        '🛒', '🧰', '💊', '🏥', '🧼', '🧴', '👕', '🎁', '✈️', '🏨',
+        '📱', '💻', '🧪', '🎓', '⚽', '🏋️', '🧳', '📦', '🐶', '🐱',
+        '🌮', '🍣', '🍜', '🍩', '🧁', '🚆', '🚇', '🚢', '🛩️', '🅿️'
+    ];
+
+    let selectedEmote = '🍽️';
+
     const params = new URLSearchParams(window.location.search);
     const grupoId = params.get('id');
     const userId = localStorage.getItem('userId');
@@ -162,11 +300,46 @@
     }
 
     window.onload = () => {
+        cargarCategorias();
+        renderEmotePicker();
         cargarInfoGrupo();
         cargarMiembros();
         cargarGastos();
         cargarUsuariosPagador();
     };
+
+    function cargarCategorias() {
+        const select = document.getElementById('categoria');
+        select.innerHTML = '';
+        CATEGORIAS.forEach(c => {
+            const option = document.createElement('option');
+            option.value = c.value;
+            option.textContent = c.label;
+            select.appendChild(option);
+        });
+    }
+
+    function renderEmotePicker() {
+        const grid = document.getElementById('emoteGrid');
+        grid.innerHTML = '';
+        EMOTES.forEach(emote => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `emote-btn${selectedEmote === emote ? ' selected' : ''}`;
+            btn.textContent = emote;
+            btn.title = `Seleccionar ${emote}`;
+            btn.onclick = () => {
+                selectedEmote = emote;
+                renderEmotePicker();
+            };
+            grid.appendChild(btn);
+        });
+    }
+
+    function categoriaLabel(categoria) {
+        const encontrada = CATEGORIAS.find(c => c.value === categoria);
+        return encontrada ? encontrada.label : 'Otros';
+    }
 
     function volver() {
         window.location.href = "dashboard.html";
@@ -257,6 +430,8 @@
             gastos.forEach(g => {
                 const pagadorNombre = g.pagador ? g.pagador.username : 'Sin pagador';
                 const fecha = g.fecha ? new Date(g.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '';
+                const categoria = g.categoria || 'OTROS';
+                const emote = g.emote || '🧾';
                 const esPagador = g.pagador && g.pagador.id === Number(userId);
                 const estadoTexto = g.pagado
                     ? 'Pagado'
@@ -275,6 +450,10 @@
                         <div class="gasto-header">
                             <span>${g.concepto} (pagado por ${pagadorNombre})</span>
                             <span class="monto">${g.monto}€</span>
+                        </div>
+                        <div class="gasto-top-row">
+                            <span class="tag tag-categoria">🏷️ ${categoriaLabel(categoria)}</span>
+                            <span class="tag tag-emote">${emote} Emote</span>
                         </div>
                         <div>Fecha: ${fecha}</div>
                         <div>${estadoTexto}</div>
@@ -337,12 +516,13 @@
     }
 
     async function crearGasto() {
-        const concepto = document.getElementById('concepto').value;
+        const concepto = document.getElementById('concepto').value.trim();
         const monto = parseFloat(document.getElementById('monto').value);
+        const categoria = document.getElementById('categoria').value;
         const msg = document.getElementById('msg');
         const pagadorId = document.getElementById('pagador').value;
 
-        if (!concepto || !monto) {
+        if (!concepto || !monto || !categoria || !selectedEmote) {
             msg.textContent = "Rellena todos los campos";
             msg.style.color = "red";
             return;
@@ -351,6 +531,8 @@
         const payload = {
             concepto: concepto,
             monto: monto,
+            categoria: categoria,
+            emote: selectedEmote,
             pagador: { id: Number(pagadorId) },
             grupo: { id: Number(grupoId) }
         };
@@ -367,9 +549,13 @@
                 msg.style.color = "green";
                 document.getElementById('concepto').value = "";
                 document.getElementById('monto').value = "";
+                document.getElementById('categoria').value = 'COMIDA';
+                selectedEmote = '🍽️';
+                renderEmotePicker();
                 cargarGastos();
             } else {
-                msg.textContent = "Error al crear gasto";
+                const error = await resp.text();
+                msg.textContent = "Error al crear gasto: " + error;
                 msg.style.color = "red";
             }
         } catch {
