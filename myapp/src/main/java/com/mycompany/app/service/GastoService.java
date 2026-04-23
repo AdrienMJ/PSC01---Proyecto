@@ -154,6 +154,12 @@ public class GastoService {
         List<Usuario> miembros = grupo.getMiembros();
         List<Gasto> gastos = gastoRepository.findByGrupoId(grupoId);
 
+        // Nuevo: para calcular el total gastado sumando todos los montos válidos
+        double totalGastado = gastos.stream().filter(g -> g.getMonto() != null && g.getMonto() > 0)
+            .mapToDouble(Gasto::getMonto).sum();
+        
+        totalGastado = redondear2(totalGastado);
+
         Map<Long, Double> balances = new HashMap<>();
         Map<Long, String> nombres = new HashMap<>();
         for (Usuario u : miembros) {
@@ -241,10 +247,16 @@ public class GastoService {
             }
         }
 
-        return new ResumenGrupoDTO(balancesDTO, transferencias);
+        return new ResumenGrupoDTO(totalGastado, balancesDTO, transferencias);
     }
 
     private double redondear2(double valor) {
         return Math.round(valor * 100.0) / 100.0;
     }
+
+    public Double calcularTotalGrupo(Long grupoId) {
+        List<Gasto> gastos = gastoRepository.findByGrupoId(grupoId);
+    
+        return gastos.stream().mapToDouble(Gasto::getMonto).sum();
+    }   
 }
