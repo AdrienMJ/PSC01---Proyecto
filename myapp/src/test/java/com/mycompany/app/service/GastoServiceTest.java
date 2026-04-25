@@ -7,7 +7,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedConstruction;
 import org.mockito.MockitoAnnotations;
+import org.springframework.web.client.RestTemplate;
+
 import com.mycompany.app.entity.Gasto;
 import com.mycompany.app.entity.Grupo;
 import com.mycompany.app.entity.Moneda;
@@ -17,7 +20,9 @@ import com.mycompany.app.repository.GrupoRepository;
 import com.mycompany.app.repository.UsuarioRepository;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class GastoServiceTest {
@@ -125,5 +130,59 @@ public class GastoServiceTest {
         });
 
         assertEquals("El pagador no pertenece al grupo", ex.getMessage());
+    }
+
+    // 5. Test de conversión: La API externa responde correctamente sin modificar GastoService
+    @Test
+    public void testObtenerTodasLasTasasExito() {
+        Moneda base = Moneda.EURO;
+        String urlEsperada = "https://open.er-api.com/v6/latest/EUR";
+
+        // Preparamos el JSON simulado que devolverá nuestra API falsa
+        Map<String, Object> respuestaFalsaApi = new HashMap<>();
+        Map<String, Object> ratesFalsos = new HashMap<>();
+        ratesFalsos.put("USD", 1.08); 
+        ratesFalsos.put("GBP", 0.85); 
+        respuestaFalsaApi.put("rates", ratesFalsos);
+
+        // Usamos MockedConstruction para interceptar "new RestTemplate()" dentro de tu método
+        try (MockedConstruction<RestTemplate> mocked = mockConstruction(RestTemplate.class,
+                (mock, context) -> {
+                    // Le decimos al mock qué devolver cuando se llame a getForObject
+                    when(mock.getForObject(urlEsperada, Map.class)).thenReturn(respuestaFalsaApi);
+                })) {
+            
+            // Ejecutamos tu código original intacto
+            Map<String, Object> tasasObtenidas = gastoService.obtenerTodasLasTasas(base);
+
+            // Verificamos que todo ha ido bien
+            assertNotNull(tasasObtenidas);
+            assertFalse(tasasObtenidas.isEmpty());
+            assertEquals(1.08, tasasObtenidas.get("USD"));
+            assertEquals(0.85, tasasObtenidas.get("GBP"));
+        }
+    }
+
+    // 6. Test de conversión: Fallo en la API (ej. sin internet) devolviendo mapa vacío
+    @Test
+    public void testObtenerTodasLasTasasFalloApiDevuelveMapaVacio() {
+        Moneda base = Moneda.DOLAR;
+        String urlEsperada = "https://open.er-api.com/v6/latest/USD";
+
+        // Interceptamos de nuevo para simular un fallo de conexión
+        try (MockedConstruction<RestTemplate> mocked = mockConstruction(RestTemplate.class,
+                (mock, context) -> {
+                    // Simulamos que al intentar conectarse salta una excepción
+                    when(mock.getForObject(urlEsperada, Map.class))
+                        .thenThrow(new RuntimeException("Error de conexión a internet"));
+                })) {
+            
+            
+            Map<String, Object> tasasObtenidas = gastoService.obtenerTodasLasTasas(base);
+
+            //Verificamos que tu bloque catch actuó y devolvió el mapa vacío sin explotar
+            assertNotNull(tasasObtenidas);
+            assertTrue(tasasObtenidas.isEmpty());
+        }
     }
 }
