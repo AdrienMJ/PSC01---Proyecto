@@ -19,10 +19,10 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -336,5 +336,21 @@ public class GastoService {
             case LIRA: return "TRY";
             default: return "EUR";
         }
+    }
+
+    public Map<String, Object> obtenerTodasLasTasas(Moneda base) {
+    try {
+        String isoBase = obtenerCodigoIso(base);
+        String url = "https://open.er-api.com/v6/latest/" + isoBase;
+        RestTemplate restTemplate = new RestTemplate();
+        
+        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+        if (response != null && response.containsKey("rates")) {
+            return (Map<String, Object>) response.get("rates");
+        }
+        } catch (Exception e) {
+            System.err.println("Error obteniendo tasas: " + e.getMessage());
+        }
+        return new HashMap<>();
     }
 }

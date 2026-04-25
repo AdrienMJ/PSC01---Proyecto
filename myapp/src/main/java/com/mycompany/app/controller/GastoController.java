@@ -3,12 +3,15 @@ package com.mycompany.app.controller;
 import com.mycompany.app.dto.ResumenGrupoDTO;
 import com.mycompany.app.entity.Gasto;
 import com.mycompany.app.entity.Grupo;
+import com.mycompany.app.entity.Moneda;
 import com.mycompany.app.entity.CategoriaGasto;
 import com.mycompany.app.service.GastoService;
 import com.mycompany.app.service.GrupoService;
 import com.mycompany.app.repository.GastoRepository;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Arrays;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -108,4 +111,25 @@ public class GastoController {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
+
+    @GetMapping("/tasas/{monedaBase}")
+    public ResponseEntity<?> obtenerTasas(@PathVariable("monedaBase") String monedaBaseStr) {
+        try {
+            // Convertimos el texto a Enum manualmente de forma segura
+            Moneda monedaBase = Moneda.valueOf(monedaBaseStr.toUpperCase());
+            Map<String, Object> tasas = gastoService.obtenerTodasLasTasas(monedaBase);
+            
+            // Si el servicio devuelve un mapa vacío, enviamos un error 500 claro
+            if (tasas.isEmpty()) {
+                return ResponseEntity.status(500).body("{\"error\": \"El servidor Java no pudo conectar con la API externa de divisas.\"}");
+            }
+            
+            return ResponseEntity.ok(tasas);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("{\"error\": \"Moneda no válida: " + monedaBaseStr + "\"}");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("{\"error\": \"Error interno: " + e.getMessage() + "\"}");
+        }
+    }
+
 }
