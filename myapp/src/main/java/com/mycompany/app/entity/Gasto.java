@@ -18,6 +18,9 @@ public class Gasto {
     private Double monto;
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
+    private Moneda moneda;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private CategoriaGasto categoria = CategoriaGasto.OTROS;
     @Column(length = 8)
     private String emote;
@@ -61,6 +64,8 @@ public class Gasto {
     public void setMonto(Double monto) { this.monto = monto; }
     public CategoriaGasto getCategoria() { return categoria; }
     public void setCategoria(CategoriaGasto categoria) { this.categoria = categoria; }
+    public Moneda getMoneda() { return moneda; }
+    public void setMoneda(Moneda moneda) { this.moneda = moneda; }
     public String getEmote() { return emote; }
     public void setEmote(String emote) { this.emote = emote; }
     public boolean isRepartoGeneral() { return repartoGeneral; }

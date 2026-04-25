@@ -6,6 +6,7 @@ import com.mycompany.app.dto.TransferenciaDTO;
 import com.mycompany.app.entity.Gasto;
 import com.mycompany.app.entity.CategoriaGasto;
 import com.mycompany.app.entity.Grupo;
+import com.mycompany.app.entity.Moneda;
 import com.mycompany.app.entity.Usuario;
 import com.mycompany.app.repository.GastoRepository;
 import com.mycompany.app.repository.GrupoRepository;
@@ -14,6 +15,7 @@ import com.mycompany.app.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -37,8 +39,10 @@ public class GastoService {
     private UsuarioRepository usuarioRepository;
     
 
+    // Añadimos Moneda monedaOrigen como parámetro
     public Gasto crear(Gasto gasto) throws Exception {
-        // Validación básica
+        
+        
         if (gasto.getMonto() == null || gasto.getMonto() <= 0) {
             throw new Exception("El monto debe ser mayor que 0");
         }
@@ -51,17 +55,43 @@ public class GastoService {
             throw new Exception("El pagador es obligatorio");
         }
 
+        
         Grupo grupo = grupoRepository.findById(gasto.getGrupo().getId())
                 .orElseThrow(() -> new Exception("Grupo no encontrado"));
 
         Usuario pagador = usuarioRepository.findById(gasto.getPagador().getId())
                 .orElseThrow(() -> new Exception("Pagador no encontrado"));
 
-        Set<Long> idsMiembros = grupo.getMiembros().stream().map(Usuario::getId).collect(Collectors.toSet());
+        
+        // Solo convertimos si el gasto viene en una moneda distinta a la del grupo
+        if (gasto.getMoneda() != null && grupo.getMoneda() != null) {
+            if (!gasto.getMoneda().equals(grupo.getMoneda())) {
+                
+                double montoConvertido = realizarConversion(gasto.getMonto(), gasto.getMoneda(), grupo.getMoneda());
+                
+                //Redondeamos a 2 decimales
+                double montoFinal = Math.round(montoConvertido * 100.0) / 100.0;
+                
+                //Seguridad: Evitar que errores de redondeo o de la API devuelvan 0
+                if (montoFinal <= 0 && gasto.getMonto() > 0) {
+                    throw new Exception("Error en la conversión: el monto resultante es demasiado pequeño o inválido.");
+                }
+
+                gasto.setMonto(montoFinal);
+                gasto.setMoneda(grupo.getMoneda()); // El gasto queda normalizado a la moneda del grupo
+            }
+        }
+
+        
+        Set<Long> idsMiembros = grupo.getMiembros().stream()
+                .map(Usuario::getId)
+                .collect(Collectors.toSet());
+        
         if (!idsMiembros.contains(pagador.getId())) {
             throw new Exception("El pagador no pertenece al grupo");
         }
 
+        
         if (gasto.getCategoria() == null) {
             gasto.setCategoria(CategoriaGasto.OTROS);
         }
@@ -70,6 +100,7 @@ public class GastoService {
             gasto.setEmote(null);
         }
 
+        
         List<Usuario> participantesFinales;
         List<Usuario> participantesRecibidos = gasto.getParticipantes() == null ? List.of() : gasto.getParticipantes();
 
@@ -98,6 +129,7 @@ public class GastoService {
             throw new Exception("No hay participantes para repartir el gasto");
         }
 
+        
         gasto.setGrupo(grupo);
         gasto.setPagador(pagador);
         gasto.setParticipantes(participantesFinales);
@@ -258,5 +290,51 @@ public class GastoService {
         List<Gasto> gastos = gastoRepository.findByGrupoId(grupoId);
     
         return gastos.stream().mapToDouble(Gasto::getMonto).sum();
-    }   
+    }
+
+    // Método para convertir la moneda
+    @SuppressWarnings("unchecked")
+    private double realizarConversion(double monto, Moneda origen, Moneda destino) {
+        if (origen == destino || origen == null || destino == null) {
+            return monto;
+        }
+
+        try {
+            String isoOrigen = obtenerCodigoIso(origen);
+            String isoDestino = obtenerCodigoIso(destino);
+
+            String url = "https://open.er-api.com/v6/latest/" + isoOrigen;
+            RestTemplate restTemplate = new RestTemplate();
+            
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            if (response != null && response.containsKey("rates")) {
+                Map<String, Object> rates = (Map<String, Object>) response.get("rates");
+                if (rates.containsKey(isoDestino)) {
+                    Number tasa = (Number) rates.get(isoDestino);
+                    return monto * tasa.doubleValue();
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error obteniendo el tipo de cambio: " + e.getMessage());
+        }
+        return monto;
+    }
+
+    // Traductor de Enum a ISO
+    private String obtenerCodigoIso(Moneda moneda) {
+        if (moneda == null) return "EUR";
+        switch (moneda) {
+            case EURO: return "EUR";
+            case DOLAR: return "USD";
+            case LIBRA: return "GBP";
+            case YEN: return "JPY";
+            case PESO: return "MXN"; 
+            case FRANCO: return "CHF";
+            case CORONA: return "SEK";
+            case REAL: return "BRL";
+            case RUPIA: return "INR";
+            case LIRA: return "TRY";
+            default: return "EUR";
+        }
+    }
 }
