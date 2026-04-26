@@ -416,6 +416,7 @@
         <button class="tab-btn active" id="tabBtnResumen" onclick="mostrarTab('resumen')">Resumen</button>
         <button class="tab-btn" id="tabBtnMiembros" onclick="mostrarTab('miembros')">Miembros</button>
         <button class="tab-btn" id="tabBtnGastos" onclick="mostrarTab('gastos')">Gastos</button>
+        <button class="tab-btn" id="tabBtnPagos" onclick="mostrarTab('pagos')">Pagos</button>
     </div>
 
     <div id="tabResumen" class="panel active">
@@ -526,9 +527,39 @@
         <div id="listaGastos"></div>
     </div>
 
+    <div id="tabPagos" class="panel">
+        <div class="seccion">
+            <div class="row" style="justify-content: space-between;">
+                <h3 style="margin: 0;">Historial de pagos</h3>
+                <button class="btn-accent" onclick="toggleRegistrarPago()">Registrar pago</button>
+            </div>
+            <p class="hint">Pagos realizados entre miembros del grupo.</p>
+            <div id="listaPagos">Cargando pagos...</div>
+        </div>
+
+        <div id="registrarPagoForm" class="crear-form">
+            <div class="seccion">
+                <h3>Registrar nuevo pago</h3>
+                <div class="row">
+                    <select id="pagoPagador">
+                        <option value="">¿Quién paga?</option>
+                    </select>
+                    <select id="pagoReceptor">
+                        <option value="">¿A quién?</option>
+                    </select>
+                    <input type="number" id="pagoMonto" placeholder="Monto" step="0.01" min="0.01">
+                    <button class="btn-accent" onclick="registrarPago()">Registrar</button>
+                </div>
+                <p id="msgPago" class="msg"></p>
+            </div>
+        </div>
+    </div>
+
     <div style="margin-bottom: 20px;">
-    <button onclick="abrirModalTasas()" class="btn-secundario">Ver tipos de cambio</button>
-</div>
+        <button onclick="abrirModalTasas()" class="btn-secundario">Ver tipos de cambio</button>
+    </div>
+
+    <div id="overlay" onclick="cerrarModalTasas()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.3); z-index:999;"></div>
 
     <div id="modalTasas" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:25px; border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index:1000; width: 380px;">
         <h3 style="margin-top:0; color: var(--text);">Calculadora de Divisas</h3>
@@ -631,7 +662,7 @@
     }
 
     function mostrarTab(tab) {
-        const tabs = ['resumen', 'miembros', 'gastos'];
+        const tabs = ['resumen', 'miembros', 'gastos', 'pagos'];
         tabs.forEach(t => {
             document.getElementById(`tab${capitalizar(t)}`).classList.toggle('active', t === tab);
             document.getElementById(`tabBtn${capitalizar(t)}`).classList.toggle('active', t === tab);
@@ -643,6 +674,8 @@
             cargarMiembros();
         } else if (tab === 'gastos') {
             cargarGastos();
+        } else if (tab === 'pagos') {
+            cargarPagos();
         }
     }
 
@@ -1119,6 +1152,105 @@
     function cerrarModalTasas() {
         document.getElementById('modalTasas').style.display = 'none';
         document.getElementById('overlay').style.display = 'none';
+    }
+
+    function toggleRegistrarPago() {
+        document.getElementById('registrarPagoForm').classList.toggle('open');
+        cargarSelectsPago();
+    }
+
+    function cargarSelectsPago() {
+        const selectPagador = document.getElementById('pagoPagador');
+        const selectReceptor = document.getElementById('pagoReceptor');
+
+        selectPagador.innerHTML = '<option value="">¿Quién paga?</option>';
+        selectReceptor.innerHTML = '<option value="">¿A quién?</option>';
+
+        miembrosGrupo.forEach(m => {
+            selectPagador.innerHTML += `<option value="${m.id}">${m.username}</option>`;
+            selectReceptor.innerHTML += `<option value="${m.id}">${m.username}</option>`;
+        });
+    }
+
+    async function registrarPago() {
+        const pagadorId = document.getElementById('pagoPagador').value;
+        const receptorId = document.getElementById('pagoReceptor').value;
+        const monto = parseFloat(document.getElementById('pagoMonto').value);
+        const msg = document.getElementById('msgPago');
+
+        if (!pagadorId || !receptorId || !monto) {
+            msg.textContent = 'Rellena todos los campos';
+            msg.style.color = 'red';
+            return;
+        }
+
+        if (pagadorId === receptorId) {
+            msg.textContent = 'El pagador y el receptor no pueden ser la misma persona';
+            msg.style.color = 'red';
+            return;
+        }
+
+        const payload = {
+            monto: monto,
+            pagador: { id: parseInt(pagadorId) },
+            receptor: { id: parseInt(receptorId) },
+            grupo: { id: parseInt(grupoId) }
+        };
+
+        try {
+            const resp = await fetch('/api/pagos/registrar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (resp.ok) {
+                msg.textContent = 'Pago registrado correctamente';
+                msg.style.color = 'green';
+                document.getElementById('pagoMonto').value = '';
+                document.getElementById('pagoPagador').value = '';
+                document.getElementById('pagoReceptor').value = '';
+                await cargarPagos();
+            } else {
+                const error = await resp.text();
+                msg.textContent = 'Error: ' + error;
+                msg.style.color = 'red';
+            }
+        } catch {
+            msg.textContent = 'Error de conexión';
+            msg.style.color = 'red';
+        }
+    }
+
+    async function cargarPagos() {
+        const cont = document.getElementById('listaPagos');
+        try {
+            const resp = await fetch(`/api/pagos/grupo/${grupoId}`);
+            if (!resp.ok) throw new Error('No se pudieron cargar los pagos');
+
+            const pagos = await resp.json();
+            cont.innerHTML = '';
+
+            if (pagos.length === 0) {
+                cont.innerHTML = '<p>No hay pagos registrados todavía.</p>';
+                return;
+            }
+
+            pagos.forEach(p => {
+                const fecha = p.fecha ? new Date(p.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '';
+                cont.innerHTML += `
+                    <div class="gasto">
+                        <div class="gasto-header">
+                            <span><strong>${p.pagador.username}</strong> pagó a <strong>${p.receptor.username}</strong></span>
+                            <span class="monto">${p.monto.toFixed(2)}€</span>
+                        </div>
+                        <div>Fecha: ${fecha}</div>
+                    </div>
+                `;
+            });
+        } catch (err) {
+            cont.innerHTML = 'Error cargando pagos';
+        }
     }
 </script>
 

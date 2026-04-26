@@ -27,7 +27,7 @@ public class PagoController {
     }
 
     @GetMapping("/grupo/{grupoId}")
-    public ResponseEntity<?> historialPorGrupo(@PathVariable Long grupoId) {
+    public ResponseEntity<?> historialPorGrupo(@PathVariable("grupoId") Long grupoId) {
         try {
             List<Pago> pagos = pagoService.obtenerHistorialPorGrupo(grupoId);
             return ResponseEntity.ok(pagos);
@@ -37,7 +37,7 @@ public class PagoController {
     }
 
     @GetMapping("/usuario/{usuarioId}")
-    public ResponseEntity<?> pagosPorUsuario(@PathVariable Long usuarioId) {
+    public ResponseEntity<?> pagosPorUsuario(@PathVariable("usuarioId") Long usuarioId) {
         try {
             List<Pago> pagos = pagoService.obtenerPagosPorUsuario(usuarioId);
             return ResponseEntity.ok(pagos);

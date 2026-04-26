@@ -3,6 +3,8 @@ package com.mycompany.app.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 @Entity
 @Table(name = "pagos")
 public class Pago {
@@ -23,6 +25,7 @@ public class Pago {
 
     @ManyToOne
     @JoinColumn(name = "grupo_id")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Grupo grupo;
 
     public Pago() {}
