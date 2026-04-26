@@ -504,6 +504,11 @@
         <div class="seccion">
             <h3>Filtrar y ordenar</h3>
             <div class="row">
+                <label for="filtroPagador">Pagador</label>
+                <select id="filtroPagador">
+                    <option value="TODOS">Todos</option>
+                </select>
+
                 <label for="filtroCategoria">Categoría</label>
                 <select id="filtroCategoria">
                     <option value="TODAS">Todas</option>
@@ -651,6 +656,7 @@
         cargarMiembros().then(() => {
             cargarUsuariosPagador();
             renderParticipantesBox();
+            cargarFiltrosPagador();
         });
 
         cargarGastos();
@@ -706,6 +712,14 @@
             option.value = c.value;
             option.textContent = c.label;
             select.appendChild(option);
+        });
+    }
+
+    function cargarFiltrosPagador() {
+        const select = document.getElementById('filtroPagador');
+        select.innerHTML = '<option value="TODOS">Todos</option>';
+        miembrosGrupo.forEach(m => {
+            select.innerHTML += `<option value="${m.id}">${m.username}</option>`;
         });
     }
 
@@ -970,19 +984,24 @@
             if (!resp.ok) throw new Error('No se pudieron cargar gastos');
 
             const gastos = await resp.json();
+
+            const filtroPagador = document.getElementById('filtroPagador').value;
+            const gastosFiltrados = filtroPagador === 'TODOS' 
+                ? gastos 
+                : gastos.filter(g => g.pagador && g.pagador.id === Number(filtroPagador));
+
             cont.innerHTML = '';
 
-            if (gastos.length === 0) {
+            if (gastosFiltrados.length === 0) {
                 cont.innerHTML = '<p>No hay gastos para este filtro.</p>';
                 return;
             }
 
-            gastos.forEach(g => {
+            gastosFiltrados.forEach(g => {
                 const pagadorNombre = g.pagador ? g.pagador.username : 'Sin pagador';
                 const fecha = g.fecha ? new Date(g.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '';
                 const esPagador = g.pagador && g.pagador.id === userId;
                 
-                // Verificar si está marcado como pagado en localStorage o en el servidor
                 const gastosPagadosLocal = JSON.parse(localStorage.getItem('gastosPagados') || '[]');
                 const estaPagadoLocal = gastosPagadosLocal.includes(g.id);
                 const estaPagado = g.pagado || estaPagadoLocal;
@@ -1252,6 +1271,15 @@
             cont.innerHTML = 'Error cargando pagos';
         }
     }
+
+    function cargarFiltrosPagador() {
+        const select = document.getElementById('filtroPagador');
+        select.innerHTML = '<option value="TODOS">Todos</option>';
+        miembrosGrupo.forEach(m => {
+            select.innerHTML += `<option value="${m.id}">${m.username}</option>`;
+        });
+    }
+
 </script>
 
 </body>
