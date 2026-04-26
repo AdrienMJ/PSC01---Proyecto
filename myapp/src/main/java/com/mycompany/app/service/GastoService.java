@@ -7,10 +7,12 @@ import com.mycompany.app.entity.Gasto;
 import com.mycompany.app.entity.CategoriaGasto;
 import com.mycompany.app.entity.Grupo;
 import com.mycompany.app.entity.Moneda;
+import com.mycompany.app.entity.Pago;
 import com.mycompany.app.entity.Usuario;
 import com.mycompany.app.repository.GastoRepository;
 import com.mycompany.app.repository.GrupoRepository;
 import com.mycompany.app.repository.UsuarioRepository;
+import com.mycompany.app.repository.PagoRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -22,6 +24,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -37,7 +40,9 @@ public class GastoService {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
-    
+
+    @Autowired
+    private PagoRepository pagoRepository;
 
     // Añadimos Moneda monedaOrigen como parámetro
     public Gasto crear(Gasto gasto) throws Exception {
@@ -239,6 +244,22 @@ public class GastoService {
             }
         }
 
+        // Aplicar pagos realizados al balance
+        List<Pago> pagos = pagoRepository.findByGrupoId(grupoId);
+        for (Pago pago : pagos) {
+            if (pago.getMonto() != null && pago.getMonto() > 0
+                    && pago.getPagador() != null && pago.getReceptor() != null) {
+                Long pagadorId = pago.getPagador().getId();
+                Long receptorId = pago.getReceptor().getId();
+                if (balances.containsKey(pagadorId)) {
+                    balances.put(pagadorId, balances.get(pagadorId) + pago.getMonto());
+                }
+                if (balances.containsKey(receptorId)) {
+                    balances.put(receptorId, balances.get(receptorId) - pago.getMonto());
+                }
+            }
+        }
+
         List<BalancePersonaDTO> balancesDTO = miembros.stream()
                 .map(u -> {
                     double b = redondear2(balances.getOrDefault(u.getId(), 0.0));
@@ -367,5 +388,51 @@ public class GastoService {
             System.err.println("Error obteniendo tasas: " + e.getMessage());
         }
         return new HashMap<>();
+    }
+
+    public List<Map<String, Object>> obtenerResumenPorGrupoParaUsuario(Long userId) {
+        Usuario usuario = usuarioRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        List<Grupo> grupos = grupoRepository.findAll().stream()
+                .filter(g -> g.getMiembros().stream().anyMatch(m -> m.getId().equals(userId)))
+                .toList();
+
+        List<Map<String, Object>> resultado = new ArrayList<>();
+
+        for (Grupo grupo : grupos) {
+            List<Gasto> gastosDelGrupo = gastoRepository.findByGrupoId(grupo.getId());
+
+            double totalPagadoPorUsuario = gastosDelGrupo.stream()
+                    .filter(g -> g.getPagador() != null && g.getPagador().getId().equals(userId))
+                    .filter(g -> g.getMonto() != null && g.getMonto() > 0)
+                    .mapToDouble(Gasto::getMonto)
+                    .sum();
+
+            double totalParteUsuario = 0.0;
+            for (Gasto gasto : gastosDelGrupo) {
+                if (gasto.getMonto() == null || gasto.getMonto() <= 0) continue;
+
+                List<Usuario> involucrados = (gasto.isRepartoGeneral() || gasto.getParticipantes() == null || gasto.getParticipantes().isEmpty())
+                        ? grupo.getMiembros()
+                        : gasto.getParticipantes();
+
+                boolean participa = involucrados.stream().anyMatch(u -> u.getId().equals(userId));
+                if (participa) {
+                    totalParteUsuario += gasto.getMonto() / involucrados.size();
+                }
+            }
+
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("grupoId", grupo.getId());
+            entry.put("grupoNombre", grupo.getNombre());
+            entry.put("moneda", grupo.getMoneda().name());
+            entry.put("totalPagado", redondear2(totalPagadoPorUsuario));
+            entry.put("totalParte", redondear2(totalParteUsuario));
+            entry.put("numGastos", gastosDelGrupo.size());
+            resultado.add(entry);
+        }
+
+        return resultado;
     }
 }

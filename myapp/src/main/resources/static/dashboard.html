@@ -587,28 +587,39 @@
             </div>
         </div>
 
-        <div class="form-grupo">
+        <div class="seccion">
             <h3>Crear nuevo grupo</h3>
-            <input type="text" id="nombreGrupo" placeholder="Nombre del viaje/cena">
-            <select id="monedaGrupo">
-                <option value="">Cargando monedas...</option>
-            </select>
-            <button onclick="crearGrupo()">Crear</button>
-            <p id="statusMsg"></p>
+            <div class="row">
+                <input type="text" id="nombreGrupo" placeholder="Nombre del viaje/cena">
+                <select id="monedaGrupo">
+                    <option value="">Cargando monedas...</option>
+                </select>
+                <button class="btn-accent" onclick="crearGrupo()">Crear</button>
+            </div>
+            <p id="statusMsg" class="msg"></p>
         </div>
 
-        <h3>Mis Grupos</h3>
-        <ul id="listaGrupos">
-            </ul>
+        <div class="seccion">
+            <div class="row" style="justify-content: space-between;">
+                <h3 style="margin: 0;">Mi resumen de gastos</h3>
+            </div>
+            <p class="hint">Lo que has gastado en cada grupo a lo largo del tiempo.</p>
+            <div id="resumenGastos">Cargando...</div>
+        </div>
+
+        <div style="margin-top: 24px;">
+            <h3>Mis Grupos</h3>
+            <ul id="listaGrupos"></ul>
+        </div>
     </div>
 
     <div id="deleteAccountModal" class="modal-overlay" onclick="cerrarModalEliminarCuenta(event)">
         <div class="modal-card" onclick="event.stopPropagation()">
             <h3>Eliminar cuenta</h3>
-            <p>Estas seguro que quieres eliminar tu cuenta y todos tus datos?</p>
+            <p>¿Estás seguro de que quieres eliminar tu cuenta y todos tus datos?</p>
             <div class="modal-actions">
                 <button class="btn-modal-cancel" onclick="cerrarModalEliminarCuenta()">Cancelar</button>
-                <button class="btn-modal-delete" onclick="confirmarEliminarCuenta()">Si, eliminar</button>
+                <button class="btn-modal-delete" onclick="confirmarEliminarCuenta()">Sí, eliminar</button>
             </div>
         </div>
     </div>
@@ -628,6 +639,7 @@
         window.onload = () => {
             cargarMonedas();
             cargarGrupos();
+            cargarResumenGastos();
         };
 
         // 1. Cargar monedas desde el Enum de Java
@@ -812,6 +824,40 @@
                 alert('Error de conexión al eliminar la cuenta.');
             }
         }
+
+        async function cargarResumenGastos() {
+            const cont = document.getElementById('resumenGastos');
+            try {
+                const resp = await fetch(`/api/gastos/usuario/${userId}/resumen-por-grupo`);
+                if (!resp.ok) throw new Error('Error cargando resumen');
+                const datos = await resp.json();
+                cont.innerHTML = '';
+
+                if (datos.length === 0) {
+                    cont.innerHTML = '<p>No hay gastos todavía.</p>';
+                    return;
+                }
+
+                datos.forEach(d => {
+                    cont.innerHTML += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; margin-bottom: 8px; background: white; border: 1px solid var(--border); border-radius: 10px;">
+                            <div>
+                                <strong>${d.grupoNombre}</strong>
+                                <span style="color: var(--muted); font-size: 0.85em; margin-left: 8px;">${d.numGastos} gastos</span>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-weight: 700; color: var(--accent);">Tu parte: ${d.totalParte.toFixed(2)}€</div>
+                                <div style="font-size: 0.85em; color: var(--muted);">Pagado: ${d.totalPagado.toFixed(2)}€</div>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (err) {
+                cont.innerHTML = '<p>Error cargando resumen.</p>';
+                console.error(err);
+            }
+        }
+
     </script>
 </body>
 </html>

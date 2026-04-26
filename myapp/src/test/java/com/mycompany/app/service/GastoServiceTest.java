@@ -14,10 +14,12 @@ import org.springframework.web.client.RestTemplate;
 import com.mycompany.app.entity.Gasto;
 import com.mycompany.app.entity.Grupo;
 import com.mycompany.app.entity.Moneda;
+import com.mycompany.app.entity.Pago;
 import com.mycompany.app.entity.Usuario;
 import com.mycompany.app.repository.GastoRepository;
 import com.mycompany.app.repository.GrupoRepository;
 import com.mycompany.app.repository.UsuarioRepository;
+import com.mycompany.app.repository.PagoRepository;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,6 +37,9 @@ public class GastoServiceTest {
 
     @Mock
     private UsuarioRepository usuarioRepository;
+
+    @Mock
+    private PagoRepository pagoRepository;
 
     @InjectMocks
     private GastoService gastoService;
@@ -186,6 +191,152 @@ public class GastoServiceTest {
         }
     }
 
+    // 7. Test de resumen: pagos se reflejan en el balance
+    @Test
+    public void testObtenerResumenGrupoConPagos() throws Exception {
+        Usuario adrien = new Usuario();
+        adrien.setId(1L);
+        adrien.setUsername("Adrien");
+
+        Usuario prueba = new Usuario();
+        prueba.setId(2L);
+        prueba.setUsername("Prueba");
+
+        Grupo grupo = new Grupo();
+        grupo.setId(10L);
+        grupo.setMoneda(Moneda.EURO);
+        grupo.getMiembros().add(adrien);
+        grupo.getMiembros().add(prueba);
+
+        // Adrien paga 100€ repartido entre los dos
+        Gasto gasto = new Gasto();
+        gasto.setMonto(100.0);
+        gasto.setPagador(adrien);
+        gasto.setGrupo(grupo);
+        gasto.setRepartoGeneral(true);
+
+        // Prueba le paga 50€ a Adrien (salda la deuda)
+        Pago pago = new Pago();
+        pago.setMonto(50.0);
+        pago.setPagador(prueba);
+        pago.setReceptor(adrien);
+
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoRepository.findByGrupoId(10L)).thenReturn(Arrays.asList(gasto));
+        when(pagoRepository.findByGrupoId(10L)).thenReturn(Arrays.asList(pago));
+
+        var resumen = gastoService.obtenerResumenGrupo(10L);
+
+        assertNotNull(resumen);
+        assertEquals(2, resumen.getBalances().size());
+        // Después del pago, ambos deberían estar equilibrados (balance ~0)
+        resumen.getBalances().forEach(b -> {
+            assertTrue(Math.abs(b.getBalance()) < 0.01,
+                    "Balance de " + b.getUsername() + " debería ser ~0 pero es " + b.getBalance());
+        });
+    }
+
+    // 8. Test de resumen sin pagos: balance refleja solo gastos
+    @Test
+    public void testObtenerResumenGrupoSinPagos() throws Exception {
+        Usuario adrien = new Usuario();
+        adrien.setId(1L);
+        adrien.setUsername("Adrien");
+
+        Usuario prueba = new Usuario();
+        prueba.setId(2L);
+        prueba.setUsername("Prueba");
+
+        Grupo grupo = new Grupo();
+        grupo.setId(10L);
+        grupo.setMoneda(Moneda.EURO);
+        grupo.getMiembros().add(adrien);
+        grupo.getMiembros().add(prueba);
+
+        Gasto gasto = new Gasto();
+        gasto.setMonto(100.0);
+        gasto.setPagador(adrien);
+        gasto.setGrupo(grupo);
+        gasto.setRepartoGeneral(true);
+
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoRepository.findByGrupoId(10L)).thenReturn(Arrays.asList(gasto));
+        when(pagoRepository.findByGrupoId(10L)).thenReturn(Arrays.asList());
+
+        var resumen = gastoService.obtenerResumenGrupo(10L);
+
+        assertNotNull(resumen);
+        // Adrien debería tener +50 y Prueba -50
+        var balanceAdrien = resumen.getBalances().stream()
+                .filter(b -> b.getUsername().equals("Adrien")).findFirst().orElseThrow();
+        var balancePrueba = resumen.getBalances().stream()
+                .filter(b -> b.getUsername().equals("Prueba")).findFirst().orElseThrow();
+
+        assertEquals(50.0, balanceAdrien.getBalance(), 0.01);
+        assertEquals(-50.0, balancePrueba.getBalance(), 0.01);
+    }
+
+    // 9. Test de resumen por grupo para usuario
+    @Test
+    public void testObtenerResumenPorGrupoParaUsuario() {
+        Usuario adrien = new Usuario();
+        adrien.setId(1L);
+        adrien.setUsername("Adrien");
+
+        Usuario prueba = new Usuario();
+        prueba.setId(2L);
+        prueba.setUsername("Prueba");
+
+        Grupo grupo = new Grupo();
+        grupo.setId(10L);
+        grupo.setNombre("Madrid");
+        grupo.setMoneda(Moneda.EURO);
+        grupo.getMiembros().add(adrien);
+        grupo.getMiembros().add(prueba);
+
+        Gasto gasto1 = new Gasto();
+        gasto1.setMonto(100.0);
+        gasto1.setPagador(adrien);
+        gasto1.setGrupo(grupo);
+        gasto1.setRepartoGeneral(true);
+
+        Gasto gasto2 = new Gasto();
+        gasto2.setMonto(60.0);
+        gasto2.setPagador(prueba);
+        gasto2.setGrupo(grupo);
+        gasto2.setRepartoGeneral(true);
+
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(adrien));
+        when(grupoRepository.findAll()).thenReturn(Arrays.asList(grupo));
+        when(gastoRepository.findByGrupoId(10L)).thenReturn(Arrays.asList(gasto1, gasto2));
+
+        var resultado = gastoService.obtenerResumenPorGrupoParaUsuario(1L);
+
+        assertNotNull(resultado);
+        assertEquals(1, resultado.size());
+
+        var entry = resultado.get(0);
+        assertEquals("Madrid", entry.get("grupoNombre"));
+        assertEquals(100.0, entry.get("totalPagado")); // Adrien pagó 100€
+        assertEquals(80.0, entry.get("totalParte")); // Su parte: 100/2 + 60/2 = 80€
+        assertEquals(2, entry.get("numGastos"));
+    }
+
+    // 10. Test de resumen por grupo: usuario sin grupos
+    @Test
+    public void testObtenerResumenPorGrupoUsuarioSinGrupos() {
+        Usuario solo = new Usuario();
+        solo.setId(99L);
+        solo.setUsername("Solo");
+
+        when(usuarioRepository.findById(99L)).thenReturn(Optional.of(solo));
+        when(grupoRepository.findAll()).thenReturn(Arrays.asList());
+
+        var resultado = gastoService.obtenerResumenPorGrupoParaUsuario(99L);
+
+        assertNotNull(resultado);
+        assertTrue(resultado.isEmpty());
+    }
     // ================== Tests para marcarComoPagado ==================
 
     // Método auxiliar para crear Gasto con ID usando reflexión
