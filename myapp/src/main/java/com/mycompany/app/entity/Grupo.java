@@ -16,7 +16,7 @@ public class Grupo {
     @Enumerated(EnumType.STRING)//Guarda el nombre de la moneda, no el índice
     private Moneda moneda;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
       name = "grupo_usuarios",
       joinColumns = @JoinColumn(name = "grupo_id"),

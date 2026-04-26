@@ -160,19 +160,34 @@ public class GastoService {
     }
 
     public Gasto marcarComoPagado(Long gastoId, Long usuarioId) throws Exception {
+        // Cargar el gasto básico
         Gasto gasto = gastoRepository.findById(gastoId)
             .orElseThrow(() -> new Exception("Gasto no encontrado"));
 
         if (gasto.isPagado()) {
             throw new Exception("El gasto ya está marcado como pagado");
         }
+        
+        // Cargar el grupo con sus miembros por separado
+        Long grupoId = gasto.getGrupo() != null ? gasto.getGrupo().getId() : null;
+        if (grupoId == null) {
+            throw new Exception("El gasto no tiene grupo asociado");
+        }
+        
+        Grupo grupo = grupoRepository.findById(grupoId)
+            .orElseThrow(() -> new Exception("Grupo no encontrado"));
+        
+        List<Usuario> miembros = grupo.getMiembros();
+        if (miembros == null || miembros.isEmpty()) {
+            throw new Exception("El grupo no tiene miembros");
+        }
 
-        if (gasto.getGrupo() == null || gasto.getGrupo().getMiembros().stream().noneMatch(u -> u.getId().equals(usuarioId))) {
+        if (miembros.stream().noneMatch(u -> u.getId().equals(usuarioId))) {
             throw new Exception("Usuario no pertenece al grupo");
         }
 
         if (gasto.getPagador() != null && gasto.getPagador().getId().equals(usuarioId)) {
-            throw new Exception("El pagador no puede marcar su propio gasto como pagado");
+            throw new Exception("No puedes marcar tu propio gasto como pagado. Otro miembro del grupo debe confirmarlo.");
         }
 
         gasto.setPagado(true);

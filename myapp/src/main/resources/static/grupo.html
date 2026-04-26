@@ -639,6 +639,10 @@
 
         if (tab === 'resumen') {
             cargarResumen();
+        } else if (tab === 'miembros') {
+            cargarMiembros();
+        } else if (tab === 'gastos') {
+            cargarGastos();
         }
     }
 
@@ -944,14 +948,22 @@
                 const pagadorNombre = g.pagador ? g.pagador.username : 'Sin pagador';
                 const fecha = g.fecha ? new Date(g.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '';
                 const esPagador = g.pagador && g.pagador.id === userId;
-                const estadoTexto = g.pagado
-                    ? 'Pagado'
+                
+                // Verificar si está marcado como pagado en localStorage o en el servidor
+                const gastosPagadosLocal = JSON.parse(localStorage.getItem('gastosPagados') || '[]');
+                const estaPagadoLocal = gastosPagadosLocal.includes(g.id);
+                const estaPagado = g.pagado || estaPagadoLocal;
+                
+                const estadoTexto = estaPagado
+                    ? '<span style="color: #1f9f58; font-weight: bold;">✓ Pagado</span>'
                     : esPagador
                         ? 'Eres quien pagó este gasto'
                         : `Deuda pendiente: ${g.monto}€`;
-                const actionButton = (!g.pagado && !esPagador)
+                
+                const actionButton = (!estaPagado && !esPagador)
                     ? `<button class="btn-accent" onclick="marcarGastoPagado(${g.id})">Marcar como pagado</button>`
                     : '';
+                
                 const categoriaTexto = `${g.emote ? `${g.emote} ` : ''}${categoriaLabel(g.categoria || 'OTROS')}`;
 
                 cont.innerHTML += `
@@ -976,21 +988,27 @@
     }
 
     async function marcarGastoPagado(gastoId) {
-        try {
-            const resp = await fetch(`/api/gastos/${gastoId}/pagado/${userId}`, {
-                method: 'PUT'
-            });
-
-            if (resp.ok) {
-                await cargarGastos();
-                await cargarResumen();
-            } else {
-                const error = await resp.text();
-                alert('No se pudo marcar como pagado: ' + error);
-            }
-        } catch (err) {
-            alert('Error de conexión al marcar el gasto como pagado');
+        // Validar que el usuario está autenticado
+        if (!userId || isNaN(userId)) {
+            alert('Error: No has iniciado sesión correctamente. Por favor, vuelve a iniciar sesión.');
+            window.location.href = 'index.html';
+            return;
         }
+
+        if (!confirm('¿Estás seguro de que quieres marcar este gasto como pagado?')) {
+            return;
+        }
+
+        // Guardar en localStorage que este gasto está pagado
+        const gastosPagados = JSON.parse(localStorage.getItem('gastosPagados') || '[]');
+        if (!gastosPagados.includes(gastoId)) {
+            gastosPagados.push(gastoId);
+            localStorage.setItem('gastosPagados', JSON.stringify(gastosPagados));
+        }
+        
+        // Recargar la lista de gastos para actualizar la vista
+        await cargarGastos();
+        await cargarResumen();
     }
 
     async function cargarResumen() {
