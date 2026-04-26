@@ -13,6 +13,9 @@ public class Grupo {
     
     private String nombre;
 
+    @Column(name = "id_creador")
+    private Long idCreador;
+
     @Enumerated(EnumType.STRING)//Guarda el nombre de la moneda, no el índice
     private Moneda moneda;
 
@@ -45,6 +48,8 @@ public class Grupo {
     public void setId(Long id) { this.id = id; }
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
+    public Long getIdCreador() { return idCreador; }
+    public void setIdCreador(Long idCreador) { this.idCreador = idCreador; }
     public Moneda getMoneda() { return moneda; }
     public void setMoneda(Moneda moneda) { this.moneda = moneda; }
     public List<Usuario> getMiembros() { return miembros; }

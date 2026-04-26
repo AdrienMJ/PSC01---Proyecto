@@ -1,11 +1,13 @@
 package com.mycompany.app.service;
 
+import com.mycompany.app.dto.ResumenGrupoDTO;
 import com.mycompany.app.entity.Grupo;
 import com.mycompany.app.entity.Moneda;
 import com.mycompany.app.entity.Usuario;
 import com.mycompany.app.repository.GrupoRepository;
 import com.mycompany.app.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,10 @@ public class GrupoService {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    @Autowired
+    @Lazy
+    private GastoService gastoService;
+
     /**
      * Crea un nuevo grupo y asigna al creador como el primer miembro.
      */
@@ -31,6 +37,7 @@ public class GrupoService {
 
         // 2. Instanciar el nuevo grupo
         Grupo nuevoGrupo = new Grupo(nombre, moneda);
+        nuevoGrupo.setIdCreador(idCreador);
 
         // 3. Vincular al creador usando el método de conveniencia
         // Esto llena la tabla intermedia 'grupo_usuarios' automáticamente
@@ -112,5 +119,40 @@ public class GrupoService {
         grupo.addMiembro(invitado);
 
         return grupoRepository.save(grupo);
+    }
+
+    @Transactional
+    public void expulsarMiembro(Long grupoId, Long idAdmin, Long idMiembro) throws Exception {
+        Grupo grupo = grupoRepository.findById(grupoId)
+                .orElseThrow(() -> new RuntimeException("Grupo no encontrado"));
+
+        if (grupo.getIdCreador() == null || !grupo.getIdCreador().equals(idAdmin)) {
+            throw new RuntimeException("Solo el creador del grupo puede expulsar miembros");
+        }
+
+        if (idAdmin.equals(idMiembro)) {
+            throw new RuntimeException("El creador no puede expulsarse a sí mismo");
+        }
+
+        boolean esMiembro = grupo.getMiembros().stream()
+                .anyMatch(m -> m.getId().equals(idMiembro));
+        if (!esMiembro) {
+            throw new RuntimeException("El usuario no es miembro de este grupo");
+        }
+
+        // Comprobar que el usuario no tiene deudas pendientes en el grupo
+        ResumenGrupoDTO resumen = gastoService.obtenerResumenGrupo(grupoId);
+        resumen.getBalances().stream()
+                .filter(b -> b.getUsuarioId().equals(idMiembro))
+                .findFirst()
+                .ifPresent(b -> {
+                    if (Math.abs(b.getBalance()) > 0.009) {
+                        throw new RuntimeException(
+                            "No se puede expulsar a este usuario hasta que salde sus deudas");
+                    }
+                });
+
+        grupo.getMiembros().removeIf(m -> m.getId().equals(idMiembro));
+        grupoRepository.save(grupo);
     }
 }

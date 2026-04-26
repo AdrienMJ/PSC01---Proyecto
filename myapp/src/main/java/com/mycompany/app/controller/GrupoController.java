@@ -77,4 +77,27 @@ public class GrupoController {
         }
     }
 
+    @GetMapping("/{grupoId}/creador")
+    public ResponseEntity<?> obtenerCreador(@PathVariable("grupoId") Long grupoId) {
+        try {
+            Grupo grupo = grupoService.obtenerGrupoPorId(grupoId);
+            return ResponseEntity.ok(java.util.Map.of("idCreador", grupo.getIdCreador() != null ? grupo.getIdCreador() : -1L));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{grupoId}/miembros/{miembroId}")
+    public ResponseEntity<?> expulsarMiembro(
+            @PathVariable("grupoId") Long grupoId,
+            @PathVariable("miembroId") Long miembroId,
+            @RequestParam("idAdmin") Long idAdmin) {
+        try {
+            grupoService.expulsarMiembro(grupoId, idAdmin, miembroId);
+            return ResponseEntity.ok("Miembro expulsado correctamente");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
 }

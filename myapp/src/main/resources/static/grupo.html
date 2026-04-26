@@ -394,6 +394,45 @@
             margin: 2px 0 8px;
         }
 
+        .miembro-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: #fff;
+            border: 1px solid var(--border);
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .miembro-nombre {
+            flex: 1;
+            font-weight: 600;
+            font-size: 0.96em;
+        }
+
+        .miembro-email {
+            font-size: 0.85em;
+            color: var(--muted);
+        }
+
+        .tag-creador {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffc107;
+            font-size: 0.78em;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 999px;
+        }
+
+        .btn-expulsar {
+            background: var(--danger);
+            font-size: 0.83em;
+            padding: 5px 10px;
+        }
+
         @media (max-width: 900px) {
             .grid-2 {
                 grid-template-columns: 1fr;
@@ -402,6 +441,54 @@
             .emote-grid {
                 grid-template-columns: repeat(7, minmax(0, 1fr));
             }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 16px;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-card {
+            background: #fff;
+            width: min(460px, 100%);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 18px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-card h3 {
+            margin: 0 0 10px;
+        }
+
+        .modal-card p {
+            margin: 0 0 14px;
+            color: var(--muted);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-modal-cancel {
+            background: #6c757d;
+        }
+
+        .btn-modal-delete {
+            background: var(--danger);
         }
     </style>
 </head>
@@ -564,6 +651,29 @@
         <button onclick="abrirModalTasas()" class="btn-secundario">Ver tipos de cambio</button>
     </div>
 
+    <!-- Modal: confirmar expulsión -->
+    <div id="modalExpulsar" class="modal-overlay" onclick="cerrarModalExpulsar(event)">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <h3>Expulsar miembro</h3>
+            <p id="modalExpulsarTexto">¿Estás seguro de que quieres expulsar a este usuario?</p>
+            <div class="modal-actions">
+                <button class="btn-modal-cancel" onclick="cerrarModalExpulsar()">Cancelar</button>
+                <button class="btn-modal-delete" onclick="confirmarExpulsion()">Sí, expulsar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: no se puede expulsar por deudas -->
+    <div id="modalDeudas" class="modal-overlay" onclick="cerrarModalDeudas(event)">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <h3>No se puede expulsar</h3>
+            <p>No se puede expulsar a este usuario hasta que salde sus deudas.</p>
+            <div class="modal-actions">
+                <button class="btn-modal-cancel" onclick="cerrarModalDeudas()">Entendido</button>
+            </div>
+        </div>
+    </div>
+
     <div id="overlay" onclick="cerrarModalTasas()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.3); z-index:999;"></div>
 
     <div id="modalTasas" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:25px; border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index:1000; width: 380px;">
@@ -640,6 +750,8 @@
     let selectedEmote = '';
     let emotePickerOpen = false;
     let miembrosGrupo = [];
+    let idCreadorGrupo = null;
+    let miembroAExpulsar = null;
 
     if (!grupoId) {
         window.location.href = 'dashboard.html';
@@ -726,10 +838,20 @@
     async function cargarMiembros() {
         const cont = document.getElementById('listaMiembros');
         try {
-            const resp = await fetch(`/api/grupos/${grupoId}/usuarios`);
-            if (!resp.ok) throw new Error('Error cargando miembros');
+            // Cargar creador e miembros en paralelo
+            const [respMiembros, respCreador] = await Promise.all([
+                fetch(`/api/grupos/${grupoId}/usuarios`),
+                fetch(`/api/grupos/${grupoId}/creador`)
+            ]);
 
-            miembrosGrupo = await resp.json();
+            if (!respMiembros.ok) throw new Error('Error cargando miembros');
+
+            miembrosGrupo = await respMiembros.json();
+
+            if (respCreador.ok) {
+                const creadorData = await respCreador.json();
+                idCreadorGrupo = creadorData.idCreador;
+            }
 
             if (miembrosGrupo.length === 0) {
                 cont.innerHTML = '<p>No hay miembros.</p>';
@@ -738,7 +860,23 @@
 
             cont.innerHTML = '';
             miembrosGrupo.forEach(m => {
-                cont.innerHTML += `<span class="chip">${m.username} (${m.email})</span>`;
+                const esCreador = m.id === idCreadorGrupo;
+                const soyCreador = userId === idCreadorGrupo;
+                const badgeCreador = esCreador ? '<span class="tag-creador">Creador</span>' : '';
+                const btnExpulsar = (soyCreador && !esCreador)
+                    ? `<button class="btn-expulsar" onclick="abrirModalExpulsar(${m.id}, '${m.username}')">Expulsar</button>`
+                    : '';
+
+                cont.innerHTML += `
+                    <div class="miembro-row">
+                        <div style="flex:1;">
+                            <span class="miembro-nombre">${m.username}</span>
+                            <span class="miembro-email">(${m.email})</span>
+                        </div>
+                        ${badgeCreador}
+                        ${btnExpulsar}
+                    </div>
+                `;
             });
         } catch (err) {
             cont.innerHTML = 'Error cargando miembros';
@@ -1278,6 +1416,58 @@
         miembrosGrupo.forEach(m => {
             select.innerHTML += `<option value="${m.id}">${m.username}</option>`;
         });
+    }
+
+    function abrirModalExpulsar(miembroId, nombre) {
+        miembroAExpulsar = miembroId;
+        document.getElementById('modalExpulsarTexto').textContent =
+            `¿Estás seguro de que quieres expulsar a ${nombre}?`;
+        document.getElementById('modalExpulsar').classList.add('open');
+    }
+
+    function cerrarModalExpulsar(event) {
+        if (!event || event.target.id === 'modalExpulsar') {
+            document.getElementById('modalExpulsar').classList.remove('open');
+            miembroAExpulsar = null;
+        }
+    }
+
+    function cerrarModalDeudas(event) {
+        if (!event || event.target.id === 'modalDeudas') {
+            document.getElementById('modalDeudas').classList.remove('open');
+        }
+    }
+
+    async function confirmarExpulsion() {
+        if (!miembroAExpulsar) return;
+        document.getElementById('modalExpulsar').classList.remove('open');
+
+        try {
+            const resp = await fetch(
+                `/api/grupos/${grupoId}/miembros/${miembroAExpulsar}?idAdmin=${userId}`,
+                { method: 'DELETE' }
+            );
+
+            if (resp.ok) {
+                miembroAExpulsar = null;
+                await cargarMiembros();
+                cargarUsuariosPagador();
+                renderParticipantesBox();
+                cargarFiltrosPagador();
+                await cargarResumen();
+            } else {
+                const error = await resp.text();
+                miembroAExpulsar = null;
+                if (error.includes('deudas')) {
+                    document.getElementById('modalDeudas').classList.add('open');
+                } else {
+                    alert('Error: ' + error);
+                }
+            }
+        } catch (err) {
+            miembroAExpulsar = null;
+            alert('Error de conexión.');
+        }
     }
 
 </script>
