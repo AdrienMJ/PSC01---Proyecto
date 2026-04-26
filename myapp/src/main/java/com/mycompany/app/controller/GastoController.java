@@ -132,4 +132,14 @@ public class GastoController {
         }
     }
 
+    @GetMapping("/usuario/{userId}/resumen-por-grupo")
+    public ResponseEntity<?> resumenPorGrupo(@PathVariable("userId") Long userId) {
+        try {
+            var resumen = gastoService.obtenerResumenPorGrupoParaUsuario(userId);
+            return ResponseEntity.ok(resumen);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
 }
