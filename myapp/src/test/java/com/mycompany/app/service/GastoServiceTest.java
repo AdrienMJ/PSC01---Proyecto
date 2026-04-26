@@ -14,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 import com.mycompany.app.entity.Gasto;
 import com.mycompany.app.entity.Grupo;
 import com.mycompany.app.entity.Moneda;
+import com.mycompany.app.entity.CategoriaGasto;
 import com.mycompany.app.entity.Usuario;
 import com.mycompany.app.repository.GastoRepository;
 import com.mycompany.app.repository.GrupoRepository;
@@ -24,6 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import org.springframework.data.domain.Sort;
 
 public class GastoServiceTest {
 
@@ -351,5 +354,230 @@ public class GastoServiceTest {
         });
 
         assertEquals("El grupo no tiene miembros", ex.getMessage());
+    }
+
+    // ================== Tests para ordenar y filtrar gastos ==================
+
+    // 14. Test: Ordenar gastos por fecha descendente (default)
+    @Test
+    public void testOrdenarGastosPorFechaDesc() {
+        Long grupoId = 1L;
+        Gasto g1 = new Gasto();
+        g1.setMonto(100.0);
+        g1.setConcepto("Gasto 1");
+        
+        Gasto g2 = new Gasto();
+        g2.setMonto(50.0);
+        g2.setConcepto("Gasto 2");
+        
+        List<Gasto> listaGastos = Arrays.asList(g1, g2);
+
+        when(gastoRepository.findByGrupoId(eq(grupoId), any(Sort.class))).thenReturn(listaGastos);
+
+        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "fecha", "desc", "TODAS");
+
+        assertNotNull(resultado);
+        assertEquals(2, resultado.size());
+        verify(gastoRepository).findByGrupoId(eq(grupoId), any(Sort.class));
+    }
+
+    // 15. Test: Ordenar gastos por fecha ascendente
+    @Test
+    public void testOrdenarGastosPorFechaAsc() {
+        Long grupoId = 1L;
+        Gasto g1 = new Gasto();
+        g1.setMonto(100.0);
+        
+        List<Gasto> listaGastos = Arrays.asList(g1);
+
+        when(gastoRepository.findByGrupoId(eq(grupoId), any(Sort.class))).thenReturn(listaGastos);
+
+        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "fecha", "asc", "TODAS");
+
+        assertNotNull(resultado);
+        assertEquals(1, resultado.size());
+        verify(gastoRepository).findByGrupoId(eq(grupoId), any(Sort.class));
+    }
+
+    // 16. Test: Ordenar gastos por monto descendente
+    @Test
+    public void testOrdenarGastosPorMontoDesc() {
+        Long grupoId = 1L;
+        Gasto g1 = new Gasto();
+        g1.setMonto(200.0);
+        
+        Gasto g2 = new Gasto();
+        g2.setMonto(100.0);
+        
+        List<Gasto> listaGastos = Arrays.asList(g1, g2);
+
+        when(gastoRepository.findByGrupoId(eq(grupoId), any(Sort.class))).thenReturn(listaGastos);
+
+        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "monto", "desc", "TODAS");
+
+        assertNotNull(resultado);
+        assertEquals(2, resultado.size());
+        verify(gastoRepository).findByGrupoId(eq(grupoId), any(Sort.class));
+    }
+
+    // 17. Test: Ordenar gastos por monto ascendente
+    @Test
+    public void testOrdenarGastosPorMontoAsc() {
+        Long grupoId = 1L;
+        Gasto g1 = new Gasto();
+        g1.setMonto(50.0);
+        
+        List<Gasto> listaGastos = Arrays.asList(g1);
+
+        when(gastoRepository.findByGrupoId(eq(grupoId), any(Sort.class))).thenReturn(listaGastos);
+
+        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "monto", "asc", "TODAS");
+
+        assertNotNull(resultado);
+        verify(gastoRepository).findByGrupoId(eq(grupoId), any(Sort.class));
+    }
+
+    // 18. Test: Filtrar gastos por categoría COMIDA
+    @Test
+    public void testFiltrarGastosPorCategoriaComida() {
+        Long grupoId = 1L;
+        CategoriaGasto categoria = CategoriaGasto.COMIDA;
+        
+        Gasto g1 = new Gasto();
+        g1.setMonto(50.0);
+        g1.setCategoria(CategoriaGasto.COMIDA);
+        
+        List<Gasto> listaGastos = Arrays.asList(g1);
+
+        when(gastoRepository.findByGrupoIdAndCategoria(eq(grupoId), eq(categoria), any(Sort.class))).thenReturn(listaGastos);
+
+        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "fecha", "desc", "COMIDA");
+
+        assertNotNull(resultado);
+        assertEquals(1, resultado.size());
+        assertEquals(CategoriaGasto.COMIDA, resultado.get(0).getCategoria());
+        verify(gastoRepository).findByGrupoIdAndCategoria(eq(grupoId), eq(categoria), any(Sort.class));
+    }
+
+    // 19. Test: Filtrar gastos por categoría TRANSPORTE
+    @Test
+    public void testFiltrarGastosPorCategoriaTransporte() {
+        Long grupoId = 1L;
+        CategoriaGasto categoria = CategoriaGasto.TRANSPORTE;
+        
+        Gasto g1 = new Gasto();
+        g1.setMonto(30.0);
+        g1.setCategoria(CategoriaGasto.TRANSPORTE);
+        
+        List<Gasto> listaGastos = Arrays.asList(g1);
+
+        when(gastoRepository.findByGrupoIdAndCategoria(eq(grupoId), eq(categoria), any(Sort.class))).thenReturn(listaGastos);
+
+        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "fecha", "desc", "TRANSPORTE");
+
+        assertNotNull(resultado);
+        assertEquals(1, resultado.size());
+        assertEquals(CategoriaGasto.TRANSPORTE, resultado.get(0).getCategoria());
+    }
+
+    // 20. Test: Filtrar gastos por categoría (case insensitive)
+    @Test
+    public void testFiltrarGastosPorCategoriaCaseInsensitive() {
+        Long grupoId = 1L;
+        CategoriaGasto categoria = CategoriaGasto.OCIO;
+        
+        Gasto g1 = new Gasto();
+        g1.setMonto(80.0);
+        g1.setCategoria(CategoriaGasto.OCIO);
+        
+        List<Gasto> listaGastos = Arrays.asList(g1);
+
+        when(gastoRepository.findByGrupoIdAndCategoria(eq(grupoId), eq(categoria), any(Sort.class))).thenReturn(listaGastos);
+
+        // Prueba con minúsculas
+        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "fecha", "desc", "ocio");
+
+        assertNotNull(resultado);
+        assertEquals(1, resultado.size());
+    }
+
+    // 21. Test: Filtrar con categoría "TODAS" devuelve todos los gastos
+    @Test
+    public void testFiltrarGastosCategoriaTodas() {
+        Long grupoId = 1L;
+        
+        Gasto g1 = new Gasto();
+        g1.setMonto(100.0);
+        g1.setCategoria(CategoriaGasto.COMIDA);
+        
+        Gasto g2 = new Gasto();
+        g2.setMonto(50.0);
+        g2.setCategoria(CategoriaGasto.TRANSPORTE);
+        
+        List<Gasto> listaGastos = Arrays.asList(g1, g2);
+
+        when(gastoRepository.findByGrupoId(eq(grupoId), any(Sort.class))).thenReturn(listaGastos);
+
+        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "fecha", "desc", "TODAS");
+
+        assertNotNull(resultado);
+        assertEquals(2, resultado.size());
+        verify(gastoRepository).findByGrupoId(eq(grupoId), any(Sort.class));
+    }
+
+    // 22. Test: Filtrar con categoría nula devuelve todos los gastos
+    @Test
+    public void testFiltrarGastosCategoriaNull() {
+        Long grupoId = 1L;
+        
+        Gasto g1 = new Gasto();
+        g1.setMonto(100.0);
+        
+        List<Gasto> listaGastos = Arrays.asList(g1);
+
+        when(gastoRepository.findByGrupoId(eq(grupoId), any(Sort.class))).thenReturn(listaGastos);
+
+        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "fecha", "desc", null);
+
+        assertNotNull(resultado);
+        assertEquals(1, resultado.size());
+    }
+
+    // 23. Test: Ordenar por propiedad desconocida usa fecha por defecto
+    @Test
+    public void testOrdenarGastosPropiedadDesconocidaUsaFecha() {
+        Long grupoId = 1L;
+        
+        Gasto g1 = new Gasto();
+        g1.setMonto(100.0);
+        
+        List<Gasto> listaGastos = Arrays.asList(g1);
+
+        when(gastoRepository.findByGrupoId(eq(grupoId), any(Sort.class))).thenReturn(listaGastos);
+
+        // Propiedad desconocida debería usar "fecha" por defecto
+        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "propiedadDesconocida", "desc", "TODAS");
+
+        assertNotNull(resultado);
+        verify(gastoRepository).findByGrupoId(eq(grupoId), any(Sort.class));
+    }
+
+    // 24. Test: Dirección desconocida usa descendente por defecto
+    @Test
+    public void testOrdenarGastosDireccionDesconocidaUsaDesc() {
+        Long grupoId = 1L;
+        
+        Gasto g1 = new Gasto();
+        g1.setMonto(100.0);
+        
+        List<Gasto> listaGastos = Arrays.asList(g1);
+
+        when(gastoRepository.findByGrupoId(eq(grupoId), any(Sort.class))).thenReturn(listaGastos);
+
+        // Dirección desconocida debería usar DESC por defecto
+        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "fecha", "direccionInvalida", "TODAS");
+
+        assertNotNull(resultado);
+        verify(gastoRepository).findByGrupoId(eq(grupoId), any(Sort.class));
     }
 }
