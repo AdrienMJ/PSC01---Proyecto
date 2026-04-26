@@ -7,10 +7,12 @@ import com.mycompany.app.entity.Gasto;
 import com.mycompany.app.entity.CategoriaGasto;
 import com.mycompany.app.entity.Grupo;
 import com.mycompany.app.entity.Moneda;
+import com.mycompany.app.entity.Pago;
 import com.mycompany.app.entity.Usuario;
 import com.mycompany.app.repository.GastoRepository;
 import com.mycompany.app.repository.GrupoRepository;
 import com.mycompany.app.repository.UsuarioRepository;
+import com.mycompany.app.repository.PagoRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -37,7 +39,9 @@ public class GastoService {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
-    
+
+    @Autowired
+    private PagoRepository pagoRepository;
 
     // Añadimos Moneda monedaOrigen como parámetro
     public Gasto crear(Gasto gasto) throws Exception {
@@ -236,6 +240,22 @@ public class GastoService {
 
             if (balances.containsKey(gasto.getPagador().getId())) {
                 balances.put(gasto.getPagador().getId(), balances.get(gasto.getPagador().getId()) + gasto.getMonto());
+            }
+        }
+
+        // Aplicar pagos realizados al balance
+        List<Pago> pagos = pagoRepository.findByGrupoId(grupoId);
+        for (Pago pago : pagos) {
+            if (pago.getMonto() != null && pago.getMonto() > 0
+                    && pago.getPagador() != null && pago.getReceptor() != null) {
+                Long pagadorId = pago.getPagador().getId();
+                Long receptorId = pago.getReceptor().getId();
+                if (balances.containsKey(pagadorId)) {
+                    balances.put(pagadorId, balances.get(pagadorId) + pago.getMonto());
+                }
+                if (balances.containsKey(receptorId)) {
+                    balances.put(receptorId, balances.get(receptorId) - pago.getMonto());
+                }
             }
         }
 
