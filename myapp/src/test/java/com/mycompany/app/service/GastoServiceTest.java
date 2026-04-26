@@ -185,4 +185,171 @@ public class GastoServiceTest {
             assertTrue(tasasObtenidas.isEmpty());
         }
     }
+
+    // ================== Tests para marcarComoPagado ==================
+
+    // Método auxiliar para crear Gasto con ID usando reflexión
+    private Gasto crearGastoConId(Long id, Double monto, boolean pagado, Usuario pagador, Grupo grupo) throws Exception {
+        Gasto gasto = new Gasto();
+        gasto.setConcepto("Test");
+        gasto.setMonto(monto);
+        gasto.setPagado(pagado);
+        gasto.setPagador(pagador);
+        gasto.setGrupo(grupo);
+        // Usar reflexión para establecer el ID
+        var idField = Gasto.class.getDeclaredField("id");
+        idField.setAccessible(true);
+        idField.set(gasto, id);
+        return gasto;
+    }
+
+    // 7. Test: Marcar gasto como pagado exitosamente
+    @Test
+    public void testMarcarGastoPagadoExitoso() throws Exception {
+        // Preparar datos
+        Usuario pagador = new Usuario();
+        pagador.setId(1L);
+        pagador.setUsername("Juan");
+
+        Usuario pagador2 = new Usuario();
+        pagador2.setId(2L);
+        pagador2.setUsername("Maria");
+
+        Grupo grupo = new Grupo();
+        grupo.setId(10L);
+        grupo.getMiembros().add(pagador);
+        grupo.getMiembros().add(pagador2);
+
+        Gasto gasto = crearGastoConId(100L, 50.0, false, pagador, grupo);
+
+        // Configurar Mocks
+        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gasto));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoRepository.save(any(Gasto.class))).thenReturn(gasto);
+
+        // Ejecutar
+        Gasto resultado = gastoService.marcarComoPagado(100L, 2L); // Maria marca como pagado
+
+        // Verificar
+        assertNotNull(resultado);
+        assertTrue(resultado.isPagado());
+        verify(gastoRepository).save(gasto);
+    }
+
+    // 8. Test: Error - Gasto no encontrado
+    @Test
+    public void testMarcarGastoPagadoGastoNoEncontrado() {
+        when(gastoRepository.findById(999L)).thenReturn(Optional.empty());
+
+        Exception ex = assertThrows(Exception.class, () -> {
+            gastoService.marcarComoPagado(999L, 1L);
+        });
+
+        assertEquals("Gasto no encontrado", ex.getMessage());
+    }
+
+    // 9. Test: Error - Gasto ya está marcado como pagado
+    @Test
+    public void testMarcarGastoPagadoYaPagado() throws Exception {
+        Usuario pagador = new Usuario();
+        pagador.setId(1L);
+
+        Grupo grupo = new Grupo();
+        grupo.setId(10L);
+        grupo.getMiembros().add(pagador);
+
+        Gasto gasto = crearGastoConId(100L, 50.0, true, pagador, grupo);
+
+        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gasto));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+
+        Exception ex = assertThrows(Exception.class, () -> {
+            gastoService.marcarComoPagado(100L, 2L);
+        });
+
+        assertEquals("El gasto ya está marcado como pagado", ex.getMessage());
+    }
+
+    // 10. Test: Error - Usuario no pertenece al grupo
+    @Test
+    public void testMarcarGastoPagadoUsuarioNoPerteneceAlGrupo() throws Exception {
+        Usuario pagador = new Usuario();
+        pagador.setId(1L);
+
+        Grupo grupo = new Grupo();
+        grupo.setId(10L);
+        grupo.getMiembros().add(pagador); // Solo Juan es miembro
+
+        Gasto gasto = crearGastoConId(100L, 50.0, false, pagador, grupo);
+
+        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gasto));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+
+        // Maria (id=2) no pertenece al grupo
+        Exception ex = assertThrows(Exception.class, () -> {
+            gastoService.marcarComoPagado(100L, 2L);
+        });
+
+        assertEquals("Usuario no pertenece al grupo", ex.getMessage());
+    }
+
+    // 11. Test: Error - El pagador no puede marcar su propio gasto
+    @Test
+    public void testMarcarGastoPagadoNoPuedeMarcarSuPropioGasto() throws Exception {
+        Usuario juan = new Usuario();
+        juan.setId(1L);
+        juan.setUsername("Juan");
+
+        Grupo grupo = new Grupo();
+        grupo.setId(10L);
+        grupo.getMiembros().add(juan);
+
+        Gasto gasto = crearGastoConId(100L, 50.0, false, juan, grupo);
+
+        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gasto));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+
+        // Juan intenta marcar su propio gasto como pagado
+        Exception ex = assertThrows(Exception.class, () -> {
+            gastoService.marcarComoPagado(100L, 1L);
+        });
+
+        assertEquals("No puedes marcar tu propio gasto como pagado. Otro miembro del grupo debe confirmarlo.", ex.getMessage());
+    }
+
+    // 12. Test: Error - El gasto no tiene grupo asociado
+    @Test
+    public void testMarcarGastoPagadoSinGrupo() throws Exception {
+        Gasto gasto = crearGastoConId(100L, 50.0, false, null, null);
+
+        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gasto));
+
+        Exception ex = assertThrows(Exception.class, () -> {
+            gastoService.marcarComoPagado(100L, 1L);
+        });
+
+        assertEquals("El gasto no tiene grupo asociado", ex.getMessage());
+    }
+
+    // 13. Test: Error - El grupo no tiene miembros
+    @Test
+    public void testMarcarGastoPagadoGrupoSinMiembros() throws Exception {
+        Usuario pagador = new Usuario();
+        pagador.setId(1L);
+
+        Grupo grupo = new Grupo();
+        grupo.setId(10L);
+        // Grupo sin miembros
+
+        Gasto gasto = crearGastoConId(100L, 50.0, false, pagador, grupo);
+
+        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gasto));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+
+        Exception ex = assertThrows(Exception.class, () -> {
+            gastoService.marcarComoPagado(100L, 1L);
+        });
+
+        assertEquals("El grupo no tiene miembros", ex.getMessage());
+    }
 }
