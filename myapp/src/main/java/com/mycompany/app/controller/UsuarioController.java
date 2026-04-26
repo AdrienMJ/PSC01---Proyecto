@@ -46,4 +46,14 @@ public class UsuarioController {
             return ResponseEntity.status(401).body(e.getMessage());
         }
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminarCuenta(@PathVariable("id") Long id) {
+        try {
+            usuarioService.eliminarCuentaYDatos(id);
+            return ResponseEntity.ok("Cuenta y datos eliminados correctamente");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
 }
