@@ -15,6 +15,8 @@ import com.mycompany.app.entity.Gasto;
 import com.mycompany.app.entity.Grupo;
 import com.mycompany.app.entity.Moneda;
 import com.mycompany.app.entity.Usuario;
+import com.mycompany.app.entity.Pago;
+import com.mycompany.app.entity.CategoriaGasto;
 import com.mycompany.app.repository.GastoRepository;
 import com.mycompany.app.repository.GrupoRepository;
 import com.mycompany.app.repository.UsuarioRepository;
@@ -82,7 +84,7 @@ public class GastoServiceTest {
 
         Gasto nuevoGasto = new Gasto();
         nuevoGasto.setMonto(100.0);
-        nuevoGasto.setMoneda(Moneda.DOLAR);
+        nuevoGasto.setMoneda(Moneda.EURO); // Misma moneda que el grupo para evitar conversión
         nuevoGasto.setPagador(juan);
         nuevoGasto.setGrupo(viaje);
 
