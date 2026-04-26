@@ -587,34 +587,39 @@
             </div>
         </div>
 
-        <div class="form-grupo">
+        <div class="seccion">
             <h3>Crear nuevo grupo</h3>
-            <input type="text" id="nombreGrupo" placeholder="Nombre del viaje/cena">
-            <select id="monedaGrupo">
-                <option value="">Cargando monedas...</option>
-            </select>
-            <button onclick="crearGrupo()">Crear</button>
-            <p id="statusMsg"></p>
+            <div class="row">
+                <input type="text" id="nombreGrupo" placeholder="Nombre del viaje/cena">
+                <select id="monedaGrupo">
+                    <option value="">Cargando monedas...</option>
+                </select>
+                <button class="btn-accent" onclick="crearGrupo()">Crear</button>
+            </div>
+            <p id="statusMsg" class="msg"></p>
         </div>
 
-        <div class="form-grupo" id="resumenGastosSeccion">
-            <h3>Mi resumen de gastos</h3>
-            <p style="color: var(--muted); font-size: 0.9em; margin-top: 0;">Lo que has gastado en cada grupo a lo largo del tiempo.</p>
+        <div class="seccion">
+            <div class="row" style="justify-content: space-between;">
+                <h3 style="margin: 0;">Mi resumen de gastos</h3>
+            </div>
+            <p class="hint">Lo que has gastado en cada grupo a lo largo del tiempo.</p>
             <div id="resumenGastos">Cargando...</div>
         </div>
 
-        <h3>Mis Grupos</h3>
-        <ul id="listaGrupos">
-            </ul>
+        <div style="margin-top: 24px;">
+            <h3>Mis Grupos</h3>
+            <ul id="listaGrupos"></ul>
+        </div>
     </div>
 
     <div id="deleteAccountModal" class="modal-overlay" onclick="cerrarModalEliminarCuenta(event)">
         <div class="modal-card" onclick="event.stopPropagation()">
             <h3>Eliminar cuenta</h3>
-            <p>Estas seguro que quieres eliminar tu cuenta y todos tus datos?</p>
+            <p>¿Estás seguro de que quieres eliminar tu cuenta y todos tus datos?</p>
             <div class="modal-actions">
                 <button class="btn-modal-cancel" onclick="cerrarModalEliminarCuenta()">Cancelar</button>
-                <button class="btn-modal-delete" onclick="confirmarEliminarCuenta()">Si, eliminar</button>
+                <button class="btn-modal-delete" onclick="confirmarEliminarCuenta()">Sí, eliminar</button>
             </div>
         </div>
     </div>
