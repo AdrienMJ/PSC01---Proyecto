@@ -142,4 +142,35 @@ public class GastoController {
         }
     }
 
+    /**
+     * Eliminar un gasto - solo el administrador del grupo puede hacerlo
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminar(
+            @PathVariable Long id,
+            @RequestParam Long usuarioId) {
+        try {
+            gastoService.eliminarGasto(id, usuarioId);
+            return ResponseEntity.ok("{\"mensaje\": \"Gasto eliminado correctamente\"}");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Editar un gasto - solo el administrador del grupo puede hacerlo
+     */
+    @PutMapping("/{id}/editar")
+    public ResponseEntity<?> editar(
+            @PathVariable Long id,
+            @RequestParam Long usuarioId,
+            @RequestBody Gasto gasto) {
+        try {
+            Gasto actualizado = gastoService.editarGasto(id, usuarioId, gasto);
+            return ResponseEntity.ok(actualizado);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
 }

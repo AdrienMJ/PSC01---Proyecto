@@ -435,4 +435,94 @@ public class GastoService {
 
         return resultado;
     }
+
+    /**
+     * Eliminar un gasto - solo el administrador del grupo puede hacerlo
+     */
+    public void eliminarGasto(Long gastoId, Long usuarioId) throws Exception {
+        // Cargar el gasto
+        Gasto gasto = gastoRepository.findById(gastoId)
+            .orElseThrow(() -> new Exception("Gasto no encontrado"));
+
+        // Obtener el grupo del gasto
+        Long grupoId = gasto.getGrupo() != null ? gasto.getGrupo().getId() : null;
+        if (grupoId == null) {
+            throw new Exception("El gasto no tiene grupo asociado");
+        }
+
+        Grupo grupo = grupoRepository.findById(grupoId)
+            .orElseThrow(() -> new Exception("Grupo no encontrado"));
+
+        // Verificar que el usuario es el administrador (creador) del grupo
+        if (grupo.getIdCreador() == null || !grupo.getIdCreador().equals(usuarioId)) {
+            throw new Exception("Solo el administrador del grupo puede eliminar gastos");
+        }
+
+        // Eliminar el gasto
+        gastoRepository.delete(gasto);
+    }
+
+    /**
+     * Editar un gasto - solo el administrador del grupo puede hacerlo
+     * Permite editar: concepto, monto, categoría, participantes
+     */
+    public Gasto editarGasto(Long gastoId, Long usuarioId, Gasto gastoActualizado) throws Exception {
+        // Cargar el gasto existente
+        Gasto gasto = gastoRepository.findById(gastoId)
+            .orElseThrow(() -> new Exception("Gasto no encontrado"));
+
+        // Obtener el grupo del gasto
+        Long grupoId = gasto.getGrupo() != null ? gasto.getGrupo().getId() : null;
+        if (grupoId == null) {
+            throw new Exception("El gasto no tiene grupo asociado");
+        }
+
+        Grupo grupo = grupoRepository.findById(grupoId)
+            .orElseThrow(() -> new Exception("Grupo no encontrado"));
+
+        // Verificar que el usuario es el administrador (creador) del grupo
+        if (grupo.getIdCreador() == null || !grupo.getIdCreador().equals(usuarioId)) {
+            throw new Exception("Solo el administrador del grupo puede editar gastos");
+        }
+
+        // Actualizar campos permitidos
+        if (gastoActualizado.getConcepto() != null) {
+            gasto.setConcepto(gastoActualizado.getConcepto());
+        }
+
+        if (gastoActualizado.getMonto() != null && gastoActualizado.getMonto() > 0) {
+            gasto.setMonto(gastoActualizado.getMonto());
+        }
+
+        if (gastoActualizado.getCategoria() != null) {
+            gasto.setCategoria(gastoActualizado.getCategoria());
+        }
+
+        if (gastoActualizado.getEmote() != null) {
+            gasto.setEmote(gastoActualizado.getEmote().isBlank() ? null : gastoActualizado.getEmote());
+        }
+
+        // Actualizar participantes si se proporcionan
+        if (gastoActualizado.getParticipantes() != null && !gastoActualizado.getParticipantes().isEmpty()) {
+            List<Usuario> participantesNuevos = gastoActualizado.getParticipantes();
+            Set<Long> idsMiembros = grupo.getMiembros().stream()
+                    .map(Usuario::getId)
+                    .collect(Collectors.toSet());
+
+            Set<Long> idsParticipantes = participantesNuevos.stream()
+                    .map(Usuario::getId)
+                    .filter(id -> id != null)
+                    .collect(Collectors.toCollection(HashSet::new));
+
+            if (!idsMiembros.containsAll(idsParticipantes)) {
+                throw new Exception("Todos los participantes deben pertenecer al grupo");
+            }
+
+            List<Usuario> participantesFinales = new ArrayList<>(usuarioRepository.findAllById(idsParticipantes));
+            gasto.setParticipantes(participantesFinales);
+            gasto.setRepartoGeneral(participantesFinales.size() == grupo.getMiembros().size());
+        }
+
+        return gastoRepository.save(gasto);
+    }
 }
