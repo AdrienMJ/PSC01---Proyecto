@@ -17,6 +17,7 @@ import com.mycompany.app.repository.PagoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
@@ -444,12 +445,8 @@ public class GastoService {
         Gasto gasto = gastoRepository.findById(gastoId)
             .orElseThrow(() -> new Exception("Gasto no encontrado"));
 
-        // Obtener el grupo del gasto
-        Long grupoId = gasto.getGrupo() != null ? gasto.getGrupo().getId() : null;
-        if (grupoId == null) {
-            throw new Exception("El gasto no tiene grupo asociado");
-        }
-
+        // Cargar el grupo por separado para evitar problemas de sesión
+        Long grupoId = gasto.getGrupo().getId();
         Grupo grupo = grupoRepository.findById(grupoId)
             .orElseThrow(() -> new Exception("Grupo no encontrado"));
 
@@ -471,12 +468,8 @@ public class GastoService {
         Gasto gasto = gastoRepository.findById(gastoId)
             .orElseThrow(() -> new Exception("Gasto no encontrado"));
 
-        // Obtener el grupo del gasto
-        Long grupoId = gasto.getGrupo() != null ? gasto.getGrupo().getId() : null;
-        if (grupoId == null) {
-            throw new Exception("El gasto no tiene grupo asociado");
-        }
-
+        // Cargar el grupo por separado
+        Long grupoId = gasto.getGrupo().getId();
         Grupo grupo = grupoRepository.findById(grupoId)
             .orElseThrow(() -> new Exception("Grupo no encontrado"));
 

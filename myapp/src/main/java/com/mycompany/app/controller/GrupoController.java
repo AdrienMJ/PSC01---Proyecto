@@ -38,6 +38,22 @@ public class GrupoController {
         return ResponseEntity.ok(grupoService.listarGruposPorUsuario(userId));
     }
 
+    @GetMapping("/{grupoId}")
+    public ResponseEntity<?> obtenerGrupo(@PathVariable("grupoId") Long grupoId) {
+        try {
+            Grupo grupo = grupoService.obtenerGrupoPorId(grupoId);
+            // Devolvemos un mapa con los datos necesarios para el frontend
+            java.util.Map<String, Object> response = new java.util.HashMap<>();
+            response.put("id", grupo.getId());
+            response.put("nombre", grupo.getNombre());
+            response.put("moneda", grupo.getMoneda());
+            response.put("idCreador", grupo.getIdCreador());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/monedas") //Hace que se puedan mostrar todos los tipos de moneda que estan en el Enum
     public Moneda[] getMonedas() {
         return Moneda.values(); // Devuelve EURO, DOLAR, LIBRA... automáticamente

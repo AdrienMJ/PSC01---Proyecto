@@ -1143,7 +1143,7 @@
     }
 
     async function cargarGastos() {
-        // Si no tenemos el idCreadorGrupo, lo cargamos del grupo directamente
+        // Cargar datos del grupo para obtener el idCreador
         if (!idCreadorGrupo || idCreadorGrupo <= 0) {
             try {
                 const respGrupo = await fetch(`/api/grupos/${grupoId}`);
@@ -1156,6 +1156,8 @@
                 console.log('Error cargando grupo:', e);
             }
         }
+        
+        console.log('DEBUG cargarGastos - userId:', userId, 'idCreadorGrupo:', idCreadorGrupo);
         
         const cont = document.getElementById('listaGastos');
         const ordenar = document.getElementById('ordenar').value;
@@ -1201,9 +1203,13 @@
                 
                 // Botones de admin: solo el creador del grupo puede verlos
                 // Se verifica tanto el idCreadorGrupo cargado como el usuario actual
-                // Si idCreadorGrupo es -1 significa que no hay creador definido, no mostrar botones
                 const soyAdmin = userId && idCreadorGrupo && idCreadorGrupo > 0 && userId === idCreadorGrupo;
-                console.log('DEBUG - userId:', userId, 'idCreadorGrupo:', idCreadorGrupo, 'soyAdmin:', soyAdmin);
+                
+                // Debug: mostrar info del admin en la UI
+                const debugInfo = userId && idCreadorGrupo 
+                    ? `<small style="color: #666; display: block; margin-top: 4px;">userId=${userId}, creador=${idCreadorGrupo}, admin=${soyAdmin}</small>` 
+                    : '';
+                
                 const botonesAdmin = soyAdmin
                     ? `<div class="row" style="margin-top: 8px; gap: 8px;">
                         <button class="btn-info" onclick="abrirModalEditarGasto(${g.id}, '${g.concepto}', ${g.monto}, '${g.categoria || 'OTROS'}', ${g.pagador ? g.pagador.id : 0})">Editar</button>
@@ -1553,18 +1559,18 @@
             );
 
             if (resp.ok) {
-                alert('Gasto eliminado correctamente');
+                alert('✅ Gasto eliminado correctamente');
                 gastoIdSeleccionado = null;
                 await cargarGastos();
                 await cargarResumen();
             } else {
                 const error = await resp.text();
-                alert('Error: ' + error);
+                alert('❌ Error: ' + error);
                 gastoIdSeleccionado = null;
             }
         } catch (err) {
             gastoIdSeleccionado = null;
-            alert('Error de conexión.');
+            alert('❌ Error de conexión.');
         }
     }
 
@@ -1641,13 +1647,13 @@
             );
 
             if (resp.ok) {
-                alert('Gasto actualizado correctamente');
+                alert('✅ Gasto actualizado correctamente');
                 gastoIdSeleccionado = null;
                 await cargarGastos();
                 await cargarResumen();
             } else {
                 const error = await resp.text();
-                alert('Error: ' + error);
+                alert('❌ Error: ' + error);
                 gastoIdSeleccionado = null;
             }
         } catch (err) {

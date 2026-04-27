@@ -150,9 +150,12 @@ public class GastoController {
             @PathVariable Long id,
             @RequestParam Long usuarioId) {
         try {
+            System.out.println("DEBUG: Eliminando gasto " + id + " por usuario " + usuarioId);
             gastoService.eliminarGasto(id, usuarioId);
             return ResponseEntity.ok("{\"mensaje\": \"Gasto eliminado correctamente\"}");
         } catch (Exception e) {
+            System.err.println("ERROR eliminarGasto: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
@@ -166,9 +169,12 @@ public class GastoController {
             @RequestParam Long usuarioId,
             @RequestBody Gasto gasto) {
         try {
+            System.out.println("DEBUG: Editando gasto " + id + " por usuario " + usuarioId);
             Gasto actualizado = gastoService.editarGasto(id, usuarioId, gasto);
             return ResponseEntity.ok(actualizado);
         } catch (Exception e) {
+            System.err.println("ERROR editarGasto: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
