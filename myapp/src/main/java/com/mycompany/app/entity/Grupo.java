@@ -53,5 +53,6 @@ public class Grupo {
     public Moneda getMoneda() { return moneda; }
     public void setMoneda(Moneda moneda) { this.moneda = moneda; }
     public List<Usuario> getMiembros() { return miembros; }
+    public void setMiembros(List<Usuario> miembros) {this.miembros = miembros;}
     public List<Gasto> getGastos() { return gastos; }
 }

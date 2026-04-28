@@ -69,7 +69,8 @@ public class Gasto {
     public String getEmote() { return emote; }
     public void setEmote(String emote) { this.emote = emote; }
     public boolean isRepartoGeneral() { return repartoGeneral; }
-    public void setRepartoGeneral(boolean repartoGeneral) { this.repartoGeneral = repartoGeneral; }
+    public void setRepartoGeneral(Boolean repartoGeneral) { this.repartoGeneral = repartoGeneral; }
+    public Boolean getRepartoGeneral() { return repartoGeneral; }
     public boolean isPagado() { return pagado; }
     public void setPagado(boolean pagado) { this.pagado = pagado; }
     public LocalDateTime getFecha() { return fecha; }

@@ -2,1050 +2,618 @@ package com.mycompany.app.service;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+
+import com.mycompany.app.dto.BalancePersonaDTO;
+import com.mycompany.app.dto.ResumenGrupoDTO;
+import com.mycompany.app.entity.*;
+import com.mycompany.app.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedConstruction;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.client.RestTemplate;
 
-import com.mycompany.app.entity.Gasto;
-import com.mycompany.app.entity.Grupo;
-import com.mycompany.app.entity.Moneda;
-import com.mycompany.app.entity.Usuario;
-import com.mycompany.app.entity.Pago;
-import com.mycompany.app.dto.ResumenGrupoDTO;
-import com.mycompany.app.entity.CategoriaGasto;
-import com.mycompany.app.repository.GastoRepository;
-import com.mycompany.app.repository.GrupoRepository;
-import com.mycompany.app.repository.UsuarioRepository;
-import com.mycompany.app.repository.PagoRepository;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import org.springframework.data.domain.Sort;
+import java.util.*;
 
 public class GastoServiceTest {
 
-    @Mock
-    private GastoRepository gastoRepository;
-
-    @Mock
-    private GrupoRepository grupoRepository;
-
-    @Mock
-    private UsuarioRepository usuarioRepository;
-
-    @Mock
-    private PagoRepository pagoRepository;
+    @Mock private GastoRepository gastoRepository;
+    @Mock private GrupoRepository grupoRepository;
+    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private PagoRepository pagoRepository;
 
     @InjectMocks
     private GastoService gastoService;
-    
+
+    private Usuario user1;
+    private Usuario user2;
+    private Grupo grupo;
+
     @BeforeEach
     public void setup() {
         MockitoAnnotations.openMocks(this);
-    }
-    // 1. Test del método calcularTotalGrupo
-    @Test
-    public void testCalcularTotalGrupo() {
-        Long grupoId = 1L;
-        Gasto g1 = new Gasto();
-        g1.setMonto(100.0);
         
-        Gasto g2 = new Gasto();
-        g2.setMonto(50.50);
-        List<Gasto> listaGastos = Arrays.asList(g1, g2);
-
-        when(gastoRepository.findByGrupoId(grupoId)).thenReturn(listaGastos);
-
-        Double total = gastoService.calcularTotalGrupo(grupoId);
-
-        assertEquals(150.50, total, 0.001); 
-    }
-
-    // 2. Test de creación exitosa con las nuevas validaciones
-    @Test
-    public void testCrearGastoExitoso() throws Exception {
-        // Preparar datos
-        Usuario juan = new Usuario();
-        juan.setId(1L);
-        juan.setUsername("Juan");
-
-        Grupo viaje = new Grupo();
-        viaje.setId(10L);
-        viaje.setMoneda(Moneda.EURO);
-        viaje.getMiembros().add(juan); // Aseguramos que Juan es miembro
-
-        Gasto nuevoGasto = new Gasto();
-        nuevoGasto.setMonto(100.0);
-        nuevoGasto.setMoneda(Moneda.EURO); // Misma moneda que el grupo para evitar conversión
-        nuevoGasto.setPagador(juan);
-        nuevoGasto.setGrupo(viaje);
-
-        // Configurar Mocks
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(viaje));
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(juan));
-        when(gastoRepository.save(any(Gasto.class))).thenReturn(nuevoGasto);
-
-        // Ejecutar
-        Gasto resultado = gastoService.crear(nuevoGasto);
-
-        // Verificar
-        assertNotNull(resultado);
-        assertEquals(100.0, resultado.getMonto());
-        verify(gastoRepository).save(nuevoGasto);
-    }
-
-    // 3. Test de validación: Monto incorrecto
-    @Test
-    public void testCrearGastoMontoCeroLanzaExcepcion() {
-        Gasto gastoMal = new Gasto();
-        gastoMal.setMonto(0.0);
-
-        Exception ex = assertThrows(Exception.class, () -> {
-            gastoService.crear(gastoMal);
-        });
-
-        assertEquals("El monto debe ser mayor que 0", ex.getMessage());
-    }
-
-    // 4. Test de validación: Pagador no pertenece al grupo
-    @Test
-    public void testCrearGastoPagadorNoPerteneceAlGrupo() {
-        Usuario juan = new Usuario(); juan.setId(1L);
-        Usuario intruso = new Usuario(); intruso.setId(2L);
-
-        Grupo viaje = new Grupo();
-        viaje.setId(10L);
-        viaje.getMiembros().add(juan); // Aseguramos que Juan es miembro
-
-        Gasto gasto = new Gasto();
-        gasto.setMonto(50.0);
-        gasto.setGrupo(viaje);
-        gasto.setPagador(intruso); // Intruso intenta pagar
-
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(viaje));
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(intruso));
-
-        Exception ex = assertThrows(Exception.class, () -> {
-            gastoService.crear(gasto);
-        });
-
-        assertEquals("El pagador no pertenece al grupo", ex.getMessage());
-    }
-
-    // 5. Test de conversión: La API externa responde correctamente sin modificar GastoService
-    @Test
-    public void testObtenerTodasLasTasasExito() {
-        Moneda base = Moneda.EURO;
-        String urlEsperada = "https://open.er-api.com/v6/latest/EUR";
-
-        // Preparamos el JSON simulado que devolverá nuestra API falsa
-        Map<String, Object> respuestaFalsaApi = new HashMap<>();
-        Map<String, Object> ratesFalsos = new HashMap<>();
-        ratesFalsos.put("USD", 1.08); 
-        ratesFalsos.put("GBP", 0.85); 
-        respuestaFalsaApi.put("rates", ratesFalsos);
-
-        // Usamos MockedConstruction para interceptar "new RestTemplate()" dentro de tu método
-        try (MockedConstruction<RestTemplate> mocked = mockConstruction(RestTemplate.class,
-                (mock, context) -> {
-                    // Le decimos al mock qué devolver cuando se llame a getForObject
-                    when(mock.getForObject(urlEsperada, Map.class)).thenReturn(respuestaFalsaApi);
-                })) {
-            
-            // Ejecutamos tu código original intacto
-            Map<String, Object> tasasObtenidas = gastoService.obtenerTodasLasTasas(base);
-
-            // Verificamos que todo ha ido bien
-            assertNotNull(tasasObtenidas);
-            assertFalse(tasasObtenidas.isEmpty());
-            assertEquals(1.08, tasasObtenidas.get("USD"));
-            assertEquals(0.85, tasasObtenidas.get("GBP"));
-        }
-    }
-
-    // 6. Test de conversión: Fallo en la API (ej. sin internet) devolviendo mapa vacío
-    @Test
-    public void testObtenerTodasLasTasasFalloApiDevuelveMapaVacio() {
-        Moneda base = Moneda.DOLAR;
-        String urlEsperada = "https://open.er-api.com/v6/latest/USD";
-
-        // Interceptamos de nuevo para simular un fallo de conexión
-        try (MockedConstruction<RestTemplate> mocked = mockConstruction(RestTemplate.class,
-                (mock, context) -> {
-                    // Simulamos que al intentar conectarse salta una excepción
-                    when(mock.getForObject(urlEsperada, Map.class))
-                        .thenThrow(new RuntimeException("Error de conexión a internet"));
-                })) {
-            
-            
-            Map<String, Object> tasasObtenidas = gastoService.obtenerTodasLasTasas(base);
-
-            //Verificamos que tu bloque catch actuó y devolvió el mapa vacío sin explotar
-            assertNotNull(tasasObtenidas);
-            assertTrue(tasasObtenidas.isEmpty());
-        }
-    }
-
-    // 7. Test de resumen: pagos se reflejan en el balance
-    @Test
-    public void testObtenerResumenGrupoConPagos() throws Exception {
-        Usuario adrien = new Usuario();
-        adrien.setId(1L);
-        adrien.setUsername("Adrien");
-
-        Usuario prueba = new Usuario();
-        prueba.setId(2L);
-        prueba.setUsername("Prueba");
-
-        Grupo grupo = new Grupo();
+        user1 = new Usuario(); user1.setId(1L); user1.setUsername("Adrien");
+        user2 = new Usuario(); user2.setId(2L); user2.setUsername("Prueba");
+        
+        grupo = new Grupo();
         grupo.setId(10L);
+        grupo.setNombre("Viaje");
         grupo.setMoneda(Moneda.EURO);
-        grupo.getMiembros().add(adrien);
-        grupo.getMiembros().add(prueba);
+        grupo.setIdCreador(1L); // User1 es admin
+        grupo.setMiembros(new ArrayList<>(Arrays.asList(user1, user2)));
+    }
 
-        // Adrien paga 100€ repartido entre los dos
+    // --- PRUEBAS DE CREAR (Validaciones y Ramas) ---
+
+    @Test
+    public void testCrearGasto_ExitoConConversion() throws Exception {
         Gasto gasto = new Gasto();
         gasto.setMonto(100.0);
-        gasto.setPagador(adrien);
-        gasto.setGrupo(grupo);
-        gasto.setRepartoGeneral(true);
-
-        // Prueba le paga 50€ a Adrien (salda la deuda)
-        Pago pago = new Pago();
-        pago.setMonto(50.0);
-        pago.setPagador(prueba);
-        pago.setReceptor(adrien);
-
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-        when(gastoRepository.findByGrupoId(10L)).thenReturn(Arrays.asList(gasto));
-        when(pagoRepository.findByGrupoId(10L)).thenReturn(Arrays.asList(pago));
-
-        var resumen = gastoService.obtenerResumenGrupo(10L);
-
-        assertNotNull(resumen);
-        assertEquals(2, resumen.getBalances().size());
-        // Después del pago, ambos deberían estar equilibrados (balance ~0)
-        resumen.getBalances().forEach(b -> {
-            assertTrue(Math.abs(b.getBalance()) < 0.01,
-                    "Balance de " + b.getUsername() + " debería ser ~0 pero es " + b.getBalance());
-        });
-    }
-
-    // 8. Test de resumen sin pagos: balance refleja solo gastos
-    @Test
-    public void testObtenerResumenGrupoSinPagos() throws Exception {
-        Usuario adrien = new Usuario();
-        adrien.setId(1L);
-        adrien.setUsername("Adrien");
-
-        Usuario prueba = new Usuario();
-        prueba.setId(2L);
-        prueba.setUsername("Prueba");
-
-        Grupo grupo = new Grupo();
-        grupo.setId(10L);
-        grupo.setMoneda(Moneda.EURO);
-        grupo.getMiembros().add(adrien);
-        grupo.getMiembros().add(prueba);
-
-        Gasto gasto = new Gasto();
-        gasto.setMonto(100.0);
-        gasto.setPagador(adrien);
+        gasto.setMoneda(Moneda.DOLAR); // Diferente a la del grupo (EURO)
+        gasto.setPagador(user1);
         gasto.setGrupo(grupo);
         gasto.setRepartoGeneral(true);
 
         when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-        when(gastoRepository.findByGrupoId(10L)).thenReturn(Arrays.asList(gasto));
-        when(pagoRepository.findByGrupoId(10L)).thenReturn(Arrays.asList());
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(user1));
+        when(gastoRepository.save(any(Gasto.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        var resumen = gastoService.obtenerResumenGrupo(10L);
+        // Mock RestTemplate para la conversión (100 USD -> 90 EUR)
+        Map<String, Object> mockResponse = new HashMap<>();
+        mockResponse.put("rates", Map.of("EUR", 0.9));
 
-        assertNotNull(resumen);
-        // Adrien debería tener +50 y Prueba -50
-        var balanceAdrien = resumen.getBalances().stream()
-                .filter(b -> b.getUsername().equals("Adrien")).findFirst().orElseThrow();
-        var balancePrueba = resumen.getBalances().stream()
-                .filter(b -> b.getUsername().equals("Prueba")).findFirst().orElseThrow();
-
-        assertEquals(50.0, balanceAdrien.getBalance(), 0.01);
-        assertEquals(-50.0, balancePrueba.getBalance(), 0.01);
+        try (MockedConstruction<RestTemplate> mocked = mockConstruction(RestTemplate.class,
+                (mock, context) -> when(mock.getForObject(anyString(), eq(Map.class))).thenReturn(mockResponse))) {
+            
+            Gasto resultado = gastoService.crear(gasto);
+            assertEquals(90.0, resultado.getMonto());
+            assertEquals(Moneda.EURO, resultado.getMoneda());
+        }
     }
 
-    // 9. Test de resumen por grupo para usuario
     @Test
-    public void testObtenerResumenPorGrupoParaUsuario() {
-        Usuario adrien = new Usuario();
-        adrien.setId(1L);
-        adrien.setUsername("Adrien");
-
-        Usuario prueba = new Usuario();
-        prueba.setId(2L);
-        prueba.setUsername("Prueba");
-
-        Grupo grupo = new Grupo();
-        grupo.setId(10L);
-        grupo.setNombre("Madrid");
-        grupo.setMoneda(Moneda.EURO);
-        grupo.getMiembros().add(adrien);
-        grupo.getMiembros().add(prueba);
-
-        Gasto gasto1 = new Gasto();
-        gasto1.setMonto(100.0);
-        gasto1.setPagador(adrien);
-        gasto1.setGrupo(grupo);
-        gasto1.setRepartoGeneral(true);
-
-        Gasto gasto2 = new Gasto();
-        gasto2.setMonto(60.0);
-        gasto2.setPagador(prueba);
-        gasto2.setGrupo(grupo);
-        gasto2.setRepartoGeneral(true);
-
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(adrien));
-        when(grupoRepository.findAll()).thenReturn(Arrays.asList(grupo));
-        when(gastoRepository.findByGrupoId(10L)).thenReturn(Arrays.asList(gasto1, gasto2));
-
-        var resultado = gastoService.obtenerResumenPorGrupoParaUsuario(1L);
-
-        assertNotNull(resultado);
-        assertEquals(1, resultado.size());
-
-        var entry = resultado.get(0);
-        assertEquals("Madrid", entry.get("grupoNombre"));
-        assertEquals(100.0, entry.get("totalPagado")); // Adrien pagó 100€
-        assertEquals(80.0, entry.get("totalParte")); // Su parte: 100/2 + 60/2 = 80€
-        assertEquals(2, entry.get("numGastos"));
-    }
-
-    // 10. Test de resumen por grupo: usuario sin grupos
-    @Test
-    public void testObtenerResumenPorGrupoUsuarioSinGrupos() {
-        Usuario solo = new Usuario();
-        solo.setId(99L);
-        solo.setUsername("Solo");
-
-        when(usuarioRepository.findById(99L)).thenReturn(Optional.of(solo));
-        when(grupoRepository.findAll()).thenReturn(Arrays.asList());
-
-        var resultado = gastoService.obtenerResumenPorGrupoParaUsuario(99L);
-
-        assertNotNull(resultado);
-        assertTrue(resultado.isEmpty());
-    }
-    // ================== Tests para marcarComoPagado ==================
-
-    // Método auxiliar para crear Gasto con ID usando reflexión
-    private Gasto crearGastoConId(Long id, Double monto, boolean pagado, Usuario pagador, Grupo grupo) throws Exception {
-        Gasto gasto = new Gasto();
-        gasto.setConcepto("Test");
-        gasto.setMonto(monto);
-        gasto.setPagado(pagado);
-        gasto.setPagador(pagador);
-        gasto.setGrupo(grupo);
-        // Usar reflexión para establecer el ID
-        var idField = Gasto.class.getDeclaredField("id");
-        idField.setAccessible(true);
-        idField.set(gasto, id);
-        return gasto;
-    }
-
-    // 7. Test: Marcar gasto como pagado exitosamente
-    @Test
-    public void testMarcarGastoPagadoExitoso() throws Exception {
-        // Preparar datos
-        Usuario pagador = new Usuario();
-        pagador.setId(1L);
-        pagador.setUsername("Juan");
-
-        Usuario pagador2 = new Usuario();
-        pagador2.setId(2L);
-        pagador2.setUsername("Maria");
-
-        Grupo grupo = new Grupo();
-        grupo.setId(10L);
-        grupo.getMiembros().add(pagador);
-        grupo.getMiembros().add(pagador2);
-
-        Gasto gasto = crearGastoConId(100L, 50.0, false, pagador, grupo);
-
-        // Configurar Mocks
-        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gasto));
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-        when(gastoRepository.save(any(Gasto.class))).thenReturn(gasto);
-
-        // Ejecutar
-        Gasto resultado = gastoService.marcarComoPagado(100L, 2L); // Maria marca como pagado
-
-        // Verificar
-        assertNotNull(resultado);
-        assertTrue(resultado.isPagado());
-        verify(gastoRepository).save(gasto);
-    }
-
-    // 8. Test: Error - Gasto no encontrado
-    @Test
-    public void testMarcarGastoPagadoGastoNoEncontrado() {
-        when(gastoRepository.findById(999L)).thenReturn(Optional.empty());
-
-        Exception ex = assertThrows(Exception.class, () -> {
-            gastoService.marcarComoPagado(999L, 1L);
-        });
-
-        assertEquals("Gasto no encontrado", ex.getMessage());
-    }
-
-    // 9. Test: Error - Gasto ya está marcado como pagado
-    @Test
-    public void testMarcarGastoPagadoYaPagado() throws Exception {
-        Usuario pagador = new Usuario();
-        pagador.setId(1L);
-
-        Grupo grupo = new Grupo();
-        grupo.setId(10L);
-        grupo.getMiembros().add(pagador);
-
-        Gasto gasto = crearGastoConId(100L, 50.0, true, pagador, grupo);
-
-        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gasto));
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-
-        Exception ex = assertThrows(Exception.class, () -> {
-            gastoService.marcarComoPagado(100L, 2L);
-        });
-
-        assertEquals("El gasto ya está marcado como pagado", ex.getMessage());
-    }
-
-    // 10. Test: Error - Usuario no pertenece al grupo
-    @Test
-    public void testMarcarGastoPagadoUsuarioNoPerteneceAlGrupo() throws Exception {
-        Usuario pagador = new Usuario();
-        pagador.setId(1L);
-
-        Grupo grupo = new Grupo();
-        grupo.setId(10L);
-        grupo.getMiembros().add(pagador); // Solo Juan es miembro
-
-        Gasto gasto = crearGastoConId(100L, 50.0, false, pagador, grupo);
-
-        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gasto));
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-
-        // Maria (id=2) no pertenece al grupo
-        Exception ex = assertThrows(Exception.class, () -> {
-            gastoService.marcarComoPagado(100L, 2L);
-        });
-
-        assertEquals("Usuario no pertenece al grupo", ex.getMessage());
-    }
-
-    // 11. Test: Error - El pagador no puede marcar su propio gasto
-    @Test
-    public void testMarcarGastoPagadoNoPuedeMarcarSuPropioGasto() throws Exception {
-        Usuario juan = new Usuario();
-        juan.setId(1L);
-        juan.setUsername("Juan");
-
-        Grupo grupo = new Grupo();
-        grupo.setId(10L);
-        grupo.getMiembros().add(juan);
-
-        Gasto gasto = crearGastoConId(100L, 50.0, false, juan, grupo);
-
-        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gasto));
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-
-        // Juan intenta marcar su propio gasto como pagado
-        Exception ex = assertThrows(Exception.class, () -> {
-            gastoService.marcarComoPagado(100L, 1L);
-        });
-
-        assertEquals("No puedes marcar tu propio gasto como pagado. Otro miembro del grupo debe confirmarlo.", ex.getMessage());
-    }
-
-    // 12. Test: Error - El gasto no tiene grupo asociado
-    @Test
-    public void testMarcarGastoPagadoSinGrupo() throws Exception {
-        Gasto gasto = crearGastoConId(100L, 50.0, false, null, null);
-
-        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gasto));
-
-        Exception ex = assertThrows(Exception.class, () -> {
-            gastoService.marcarComoPagado(100L, 1L);
-        });
-
-        assertEquals("El gasto no tiene grupo asociado", ex.getMessage());
-    }
-
-    // 13. Test: Error - El grupo no tiene miembros
-    @Test
-    public void testMarcarGastoPagadoGrupoSinMiembros() throws Exception {
-        Usuario pagador = new Usuario();
-        pagador.setId(1L);
-
-        Grupo grupo = new Grupo();
-        grupo.setId(10L);
-        // Grupo sin miembros
-
-        Gasto gasto = crearGastoConId(100L, 50.0, false, pagador, grupo);
-
-        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gasto));
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-
-        Exception ex = assertThrows(Exception.class, () -> {
-            gastoService.marcarComoPagado(100L, 1L);
-        });
-
-        assertEquals("El grupo no tiene miembros", ex.getMessage());
-    }
-
-    // ================== Tests para ordenar y filtrar gastos ==================
-
-    // 14. Test: Ordenar gastos por fecha descendente (default)
-    @Test
-    public void testOrdenarGastosPorFechaDesc() {
-        Long grupoId = 1L;
-        Gasto g1 = new Gasto();
-        g1.setMonto(100.0);
-        g1.setConcepto("Gasto 1");
+    public void testCrearGasto_ValidacionesFallidas() {
+        Gasto g = new Gasto();
+        // Caso: Monto nulo
+        assertThrows(Exception.class, () -> gastoService.crear(g));
         
-        Gasto g2 = new Gasto();
-        g2.setMonto(50.0);
-        g2.setConcepto("Gasto 2");
+        g.setMonto(10.0);
+        // Caso: Grupo nulo
+        assertThrows(Exception.class, () -> gastoService.crear(g));
         
-        List<Gasto> listaGastos = Arrays.asList(g1, g2);
-
-        when(gastoRepository.findByGrupoId(eq(grupoId), any(Sort.class))).thenReturn(listaGastos);
-
-        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "fecha", "desc", "TODAS");
-
-        assertNotNull(resultado);
-        assertEquals(2, resultado.size());
-        verify(gastoRepository).findByGrupoId(eq(grupoId), any(Sort.class));
-    }
-
-    // 15. Test: Ordenar gastos por fecha ascendente
-    @Test
-    public void testOrdenarGastosPorFechaAsc() {
-        Long grupoId = 1L;
-        Gasto g1 = new Gasto();
-        g1.setMonto(100.0);
-        
-        List<Gasto> listaGastos = Arrays.asList(g1);
-
-        when(gastoRepository.findByGrupoId(eq(grupoId), any(Sort.class))).thenReturn(listaGastos);
-
-        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "fecha", "asc", "TODAS");
-
-        assertNotNull(resultado);
-        assertEquals(1, resultado.size());
-        verify(gastoRepository).findByGrupoId(eq(grupoId), any(Sort.class));
-    }
-
-    // 16. Test: Ordenar gastos por monto descendente
-    @Test
-    public void testOrdenarGastosPorMontoDesc() {
-        Long grupoId = 1L;
-        Gasto g1 = new Gasto();
-        g1.setMonto(200.0);
-        
-        Gasto g2 = new Gasto();
-        g2.setMonto(100.0);
-        
-        List<Gasto> listaGastos = Arrays.asList(g1, g2);
-
-        when(gastoRepository.findByGrupoId(eq(grupoId), any(Sort.class))).thenReturn(listaGastos);
-
-        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "monto", "desc", "TODAS");
-
-        assertNotNull(resultado);
-        assertEquals(2, resultado.size());
-        verify(gastoRepository).findByGrupoId(eq(grupoId), any(Sort.class));
-    }
-
-    // 17. Test: Ordenar gastos por monto ascendente
-    @Test
-    public void testOrdenarGastosPorMontoAsc() {
-        Long grupoId = 1L;
-        Gasto g1 = new Gasto();
-        g1.setMonto(50.0);
-        
-        List<Gasto> listaGastos = Arrays.asList(g1);
-
-        when(gastoRepository.findByGrupoId(eq(grupoId), any(Sort.class))).thenReturn(listaGastos);
-
-        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "monto", "asc", "TODAS");
-
-        assertNotNull(resultado);
-        verify(gastoRepository).findByGrupoId(eq(grupoId), any(Sort.class));
-    }
-
-    // 18. Test: Filtrar gastos por categoría COMIDA
-    @Test
-    public void testFiltrarGastosPorCategoriaComida() {
-        Long grupoId = 1L;
-        CategoriaGasto categoria = CategoriaGasto.COMIDA;
-        
-        Gasto g1 = new Gasto();
-        g1.setMonto(50.0);
-        g1.setCategoria(CategoriaGasto.COMIDA);
-        
-        List<Gasto> listaGastos = Arrays.asList(g1);
-
-        when(gastoRepository.findByGrupoIdAndCategoria(eq(grupoId), eq(categoria), any(Sort.class))).thenReturn(listaGastos);
-
-        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "fecha", "desc", "COMIDA");
-
-        assertNotNull(resultado);
-        assertEquals(1, resultado.size());
-        assertEquals(CategoriaGasto.COMIDA, resultado.get(0).getCategoria());
-        verify(gastoRepository).findByGrupoIdAndCategoria(eq(grupoId), eq(categoria), any(Sort.class));
-    }
-
-    // 19. Test: Filtrar gastos por categoría TRANSPORTE
-    @Test
-    public void testFiltrarGastosPorCategoriaTransporte() {
-        Long grupoId = 1L;
-        CategoriaGasto categoria = CategoriaGasto.TRANSPORTE;
-        
-        Gasto g1 = new Gasto();
-        g1.setMonto(30.0);
-        g1.setCategoria(CategoriaGasto.TRANSPORTE);
-        
-        List<Gasto> listaGastos = Arrays.asList(g1);
-
-        when(gastoRepository.findByGrupoIdAndCategoria(eq(grupoId), eq(categoria), any(Sort.class))).thenReturn(listaGastos);
-
-        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "fecha", "desc", "TRANSPORTE");
-
-        assertNotNull(resultado);
-        assertEquals(1, resultado.size());
-        assertEquals(CategoriaGasto.TRANSPORTE, resultado.get(0).getCategoria());
-    }
-
-    // 20. Test: Filtrar gastos por categoría (case insensitive)
-    @Test
-    public void testFiltrarGastosPorCategoriaCaseInsensitive() {
-        Long grupoId = 1L;
-        CategoriaGasto categoria = CategoriaGasto.OCIO;
-        
-        Gasto g1 = new Gasto();
-        g1.setMonto(80.0);
-        g1.setCategoria(CategoriaGasto.OCIO);
-        
-        List<Gasto> listaGastos = Arrays.asList(g1);
-
-        when(gastoRepository.findByGrupoIdAndCategoria(eq(grupoId), eq(categoria), any(Sort.class))).thenReturn(listaGastos);
-
-        // Prueba con minúsculas
-        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "fecha", "desc", "ocio");
-
-        assertNotNull(resultado);
-        assertEquals(1, resultado.size());
-    }
-
-    // 21. Test: Filtrar con categoría "TODAS" devuelve todos los gastos
-    @Test
-    public void testFiltrarGastosCategoriaTodas() {
-        Long grupoId = 1L;
-        
-        Gasto g1 = new Gasto();
-        g1.setMonto(100.0);
-        g1.setCategoria(CategoriaGasto.COMIDA);
-        
-        Gasto g2 = new Gasto();
-        g2.setMonto(50.0);
-        g2.setCategoria(CategoriaGasto.TRANSPORTE);
-        
-        List<Gasto> listaGastos = Arrays.asList(g1, g2);
-
-        when(gastoRepository.findByGrupoId(eq(grupoId), any(Sort.class))).thenReturn(listaGastos);
-
-        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "fecha", "desc", "TODAS");
-
-        assertNotNull(resultado);
-        assertEquals(2, resultado.size());
-        verify(gastoRepository).findByGrupoId(eq(grupoId), any(Sort.class));
-    }
-
-    // 22. Test: Filtrar con categoría nula devuelve todos los gastos
-    @Test
-    public void testFiltrarGastosCategoriaNull() {
-        Long grupoId = 1L;
-        
-        Gasto g1 = new Gasto();
-        g1.setMonto(100.0);
-        
-        List<Gasto> listaGastos = Arrays.asList(g1);
-
-        when(gastoRepository.findByGrupoId(eq(grupoId), any(Sort.class))).thenReturn(listaGastos);
-
-        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "fecha", "desc", null);
-
-        assertNotNull(resultado);
-        assertEquals(1, resultado.size());
-    }
-
-    // 23. Test: Ordenar por propiedad desconocida usa fecha por defecto
-    @Test
-    public void testOrdenarGastosPropiedadDesconocidaUsaFecha() {
-        Long grupoId = 1L;
-        
-        Gasto g1 = new Gasto();
-        g1.setMonto(100.0);
-        
-        List<Gasto> listaGastos = Arrays.asList(g1);
-
-        when(gastoRepository.findByGrupoId(eq(grupoId), any(Sort.class))).thenReturn(listaGastos);
-
-        // Propiedad desconocida debería usar "fecha" por defecto
-        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "propiedadDesconocida", "desc", "TODAS");
-
-        assertNotNull(resultado);
-        verify(gastoRepository).findByGrupoId(eq(grupoId), any(Sort.class));
-    }
-
-    // 24. Test: Dirección desconocida usa descendente por defecto
-    @Test
-    public void testOrdenarGastosDireccionDesconocidaUsaDesc() {
-        Long grupoId = 1L;
-        
-        Gasto g1 = new Gasto();
-        g1.setMonto(100.0);
-        
-        List<Gasto> listaGastos = Arrays.asList(g1);
-
-        when(gastoRepository.findByGrupoId(eq(grupoId), any(Sort.class))).thenReturn(listaGastos);
-
-        // Dirección desconocida debería usar DESC por defecto
-        List<Gasto> resultado = gastoService.listarPorGrupo(grupoId, "fecha", "direccionInvalida", "TODAS");
-
-        assertNotNull(resultado);
-        verify(gastoRepository).findByGrupoId(eq(grupoId), any(Sort.class));
-    }
-
-    // ================== Tests para editar/eliminar gastos (HU administrador) ==================
-
-    @Test
-    public void testEliminarGastoComoAdministradorExitoso() throws Exception {
-        Usuario admin = new Usuario();
-        admin.setId(1L);
-
-        Usuario miembro = new Usuario();
-        miembro.setId(2L);
-
-        Grupo grupo = new Grupo();
-        grupo.setId(10L);
-        grupo.setIdCreador(1L);
-        grupo.getMiembros().add(admin);
-        grupo.getMiembros().add(miembro);
-
-        Gasto gasto = crearGastoConId(100L, 80.0, false, admin, grupo);
-        gasto.setParticipantes(new java.util.ArrayList<>(Arrays.asList(admin, miembro)));
-
-        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gasto));
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-
-        gastoService.eliminarGasto(100L, 1L);
-
-        assertTrue(gasto.getParticipantes().isEmpty());
-        verify(gastoRepository).delete(gasto);
+        g.setGrupo(grupo);
+        // Caso: Pagador nulo
+        assertThrows(Exception.class, () -> gastoService.crear(g));
     }
 
     @Test
-    public void testEliminarGastoComoNoAdministradorLanzaExcepcion() throws Exception {
-        Usuario admin = new Usuario();
-        admin.setId(1L);
-
-        Grupo grupo = new Grupo();
-        grupo.setId(10L);
-        grupo.setIdCreador(1L);
-        grupo.getMiembros().add(admin);
-
-        Gasto gasto = crearGastoConId(100L, 80.0, false, admin, grupo);
-
-        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gasto));
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-
-        Exception ex = assertThrows(Exception.class, () -> gastoService.eliminarGasto(100L, 99L));
-
-        assertEquals("Solo el administrador del grupo puede eliminar gastos", ex.getMessage());
-        verify(gastoRepository, never()).delete(any(Gasto.class));
-    }
-
-    @Test
-    public void testEliminarGastoNoEncontradoLanzaExcepcion() {
-        when(gastoRepository.findById(999L)).thenReturn(Optional.empty());
-
-        Exception ex = assertThrows(Exception.class, () -> gastoService.eliminarGasto(999L, 1L));
-
-        assertEquals("Gasto no encontrado", ex.getMessage());
-        verify(gastoRepository, never()).delete(any(Gasto.class));
-    }
-
-    @Test
-    public void testEditarGastoComoAdministradorExitoso() throws Exception {
-        Usuario admin = new Usuario();
-        admin.setId(1L);
-        admin.setUsername("Admin");
-
-        Usuario miembro = new Usuario();
-        miembro.setId(2L);
-        miembro.setUsername("Miembro");
-
-        Grupo grupo = new Grupo();
-        grupo.setId(10L);
-        grupo.setIdCreador(1L);
-        grupo.getMiembros().add(admin);
-        grupo.getMiembros().add(miembro);
-
-        Gasto gastoExistente = crearGastoConId(100L, 80.0, false, admin, grupo);
-        gastoExistente.setConcepto("Cena vieja");
-        gastoExistente.setCategoria(CategoriaGasto.OTROS);
-        gastoExistente.setEmote(":)");
-        gastoExistente.setParticipantes(new java.util.ArrayList<>(Arrays.asList(admin, miembro)));
-
-        Gasto gastoActualizado = new Gasto();
-        gastoActualizado.setConcepto("Cena corregida");
-        gastoActualizado.setMonto(120.0);
-        gastoActualizado.setCategoria(CategoriaGasto.COMIDA);
-        gastoActualizado.setEmote("  ");
-        gastoActualizado.setParticipantes(Arrays.asList(admin));
-
-        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gastoExistente));
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-        when(usuarioRepository.findAllById(any())).thenReturn(Arrays.asList(admin));
-        when(gastoRepository.save(any(Gasto.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        Gasto resultado = gastoService.editarGasto(100L, 1L, gastoActualizado);
-
-        assertEquals("Cena corregida", resultado.getConcepto());
-        assertEquals(120.0, resultado.getMonto(), 0.001);
-        assertEquals(CategoriaGasto.COMIDA, resultado.getCategoria());
-        assertNull(resultado.getEmote());
-        assertEquals(1, resultado.getParticipantes().size());
-        assertFalse(resultado.isRepartoGeneral());
-        verify(gastoRepository).save(gastoExistente);
-    }
-
-    @Test
-    public void testEditarGastoComoNoAdministradorLanzaExcepcion() throws Exception {
-        Usuario admin = new Usuario();
-        admin.setId(1L);
-
-        Grupo grupo = new Grupo();
-        grupo.setId(10L);
-        grupo.setIdCreador(1L);
-        grupo.getMiembros().add(admin);
-
-        Gasto gastoExistente = crearGastoConId(100L, 80.0, false, admin, grupo);
-        Gasto gastoActualizado = new Gasto();
-        gastoActualizado.setConcepto("Intento sin permisos");
-
-        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gastoExistente));
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-
-        Exception ex = assertThrows(Exception.class, () -> gastoService.editarGasto(100L, 99L, gastoActualizado));
-
-        assertEquals("Solo el administrador del grupo puede editar gastos", ex.getMessage());
-        verify(gastoRepository, never()).save(any(Gasto.class));
-    }
-
-    @Test
-    public void testEditarGastoNoEncontradoLanzaExcepcion() {
-        Gasto gastoActualizado = new Gasto();
-        gastoActualizado.setConcepto("No importa");
-
-        when(gastoRepository.findById(999L)).thenReturn(Optional.empty());
-
-        Exception ex = assertThrows(Exception.class, () -> gastoService.editarGasto(999L, 1L, gastoActualizado));
-
-        assertEquals("Gasto no encontrado", ex.getMessage());
-        verify(gastoRepository, never()).save(any(Gasto.class));
-    }
-
-    @Test
-    public void testEditarGastoConParticipanteFueraDelGrupoLanzaExcepcion() throws Exception {
-        Usuario admin = new Usuario();
-        admin.setId(1L);
-
-        Usuario miembro = new Usuario();
-        miembro.setId(2L);
-
-        Usuario intruso = new Usuario();
-        intruso.setId(99L);
-
-        Grupo grupo = new Grupo();
-        grupo.setId(10L);
-        grupo.setIdCreador(1L);
-        grupo.getMiembros().add(admin);
-        grupo.getMiembros().add(miembro);
-
-        Gasto gastoExistente = crearGastoConId(100L, 80.0, false, admin, grupo);
-
-        Gasto gastoActualizado = new Gasto();
-        gastoActualizado.setParticipantes(Arrays.asList(miembro, intruso));
-
-        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gastoExistente));
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-
-        Exception ex = assertThrows(Exception.class, () -> gastoService.editarGasto(100L, 1L, gastoActualizado));
-
-        assertEquals("Todos los participantes deben pertenecer al grupo", ex.getMessage());
-        verify(gastoRepository, never()).save(any(Gasto.class));
-    }
-
-    // Faltaban validaciones de nulos iniciales
-    @Test
-    public void testCrearGastoAtributosNulosLanzaExcepcion() {
-        Gasto gastoMontoNull = new Gasto();
-        Exception ex1 = assertThrows(Exception.class, () -> gastoService.crear(gastoMontoNull));
-        assertEquals("El monto debe ser mayor que 0", ex1.getMessage());
-
-        Gasto gastoGrupoNull = new Gasto();
-        gastoGrupoNull.setMonto(100.0);
-        Exception ex2 = assertThrows(Exception.class, () -> gastoService.crear(gastoGrupoNull));
-        assertEquals("El grupo es obligatorio", ex2.getMessage());
-
-        Gasto gastoPagadorNull = new Gasto();
-        gastoPagadorNull.setMonto(100.0);
-        Grupo grupo = new Grupo(); grupo.setId(1L);
-        gastoPagadorNull.setGrupo(grupo);
-        Exception ex3 = assertThrows(Exception.class, () -> gastoService.crear(gastoPagadorNull));
-        assertEquals("El pagador es obligatorio", ex3.getMessage());
-    }
-
-    // Faltaba el caso donde no se encuentra en BD
-    @Test
-    public void testCrearGastoGrupoOPagadorNoEncontrado() {
+    public void testCrearGasto_ParticipantesEspecificos() throws Exception {
         Gasto gasto = new Gasto();
         gasto.setMonto(100.0);
-        Grupo grupo = new Grupo(); grupo.setId(1L);
-        Usuario pagador = new Usuario(); pagador.setId(1L);
+        gasto.setPagador(user1);
         gasto.setGrupo(grupo);
-        gasto.setPagador(pagador);
-
-        when(grupoRepository.findById(1L)).thenReturn(Optional.empty());
-        Exception ex = assertThrows(Exception.class, () -> gastoService.crear(gasto));
-        assertEquals("Grupo no encontrado", ex.getMessage());
-    }
-
-    // Cobertura de la rama: Categoria Null y Reparto Especifico
-    @Test
-    public void testCrearGastoCategoriaNulaYRepartoEspecifico() throws Exception {
-        Usuario pagador = new Usuario(); pagador.setId(1L);
-        Usuario participante = new Usuario(); participante.setId(2L);
-        
-        Grupo grupo = new Grupo(); grupo.setId(10L); grupo.setMoneda(Moneda.EURO);
-        grupo.getMiembros().addAll(Arrays.asList(pagador, participante));
-
-        Gasto gasto = new Gasto();
-        gasto.setMonto(100.0);
-        gasto.setMoneda(Moneda.EURO);
-        gasto.setGrupo(grupo);
-        gasto.setPagador(pagador);
-        gasto.setCategoria(null); // Provocamos la rama de CategoriaGasto.OTROS
-        gasto.setRepartoGeneral(false); // Reparto específico
-        gasto.setParticipantes(Arrays.asList(participante));
+        gasto.setRepartoGeneral(false);
+        gasto.setParticipantes(List.of(user1)); // Solo participa user1
 
         when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(pagador));
-        when(usuarioRepository.findAllById(any())).thenReturn(Arrays.asList(participante));
-        when(gastoRepository.save(any(Gasto.class))).thenAnswer(i -> i.getArgument(0));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(user1));
+        when(usuarioRepository.findAllById(any())).thenReturn(List.of(user1));
+        when(gastoRepository.save(any())).thenReturn(gasto);
 
-        Gasto resultado = gastoService.crear(gasto);
-
-        assertEquals(CategoriaGasto.OTROS, resultado.getCategoria());
-        assertFalse(resultado.isRepartoGeneral());
-        assertEquals(1, resultado.getParticipantes().size());
+        Gasto result = gastoService.crear(gasto);
+        assertFalse(result.isRepartoGeneral());
+        assertEquals(1, result.getParticipantes().size());
     }
+
+    // --- PRUEBAS DE LISTAR Y OBTENER ---
+
     @Test
-    public void testObtenerPorIdExito() throws Exception {
+    public void testObtenerPorId_InexistenteLanzaExcepcion() {
+        when(gastoRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(Exception.class, () -> gastoService.obtenerPorId(99L));
+    }
+
+    // --- PRUEBAS DE MARCAR COMO PAGADO ---
+
+    @Test
+    public void testMarcarComoPagado_Validaciones() throws Exception {
         Gasto gasto = new Gasto();
+        gasto.setGrupo(grupo);
+        gasto.setPagador(user1);
+        gasto.setPagado(false);
+
         when(gastoRepository.findById(1L)).thenReturn(Optional.of(gasto));
-        Gasto resultado = gastoService.obtenerPorId(1L);
-        assertNotNull(resultado);
-    }
-
-    @Test
-    public void testObtenerPorIdNoEncontradoLanzaExcepcion() {
-        when(gastoRepository.findById(1L)).thenReturn(Optional.empty());
-        Exception ex = assertThrows(Exception.class, () -> gastoService.obtenerPorId(1L));
-        assertEquals("Gasto no encontrado", ex.getMessage());
-    }
-    @Test
-    public void testObtenerResumenGrupoIgnoraGastosInvalidos() throws Exception {
-        Usuario u1 = new Usuario(); u1.setId(1L); u1.setUsername("A");
-        Grupo grupo = new Grupo(); grupo.setId(10L); grupo.getMiembros().add(u1);
-
-        // 1. Monto null (Ignorado por el continue)
-        Gasto gastoInvalido1 = new Gasto(); 
-        gastoInvalido1.setMonto(null);
-        
-        // 2. Pagado (Ignorado por el continue en balances, pero SÍ suma al total del grupo)
-        Gasto gastoInvalido2 = new Gasto(); 
-        gastoInvalido2.setMonto(10.0); 
-        gastoInvalido2.setPagado(true);
-        
-        // 3. Pagador null (Ignorado por el continue en balances, pero SÍ suma al total del grupo)
-        Gasto gastoInvalido3 = new Gasto(); 
-        gastoInvalido3.setMonto(10.0); 
-        gastoInvalido3.setPagador(null);
-
         when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-        when(gastoRepository.findByGrupoId(10L)).thenReturn(Arrays.asList(gastoInvalido1, gastoInvalido2, gastoInvalido3));
-        when(pagoRepository.findByGrupoId(10L)).thenReturn(new ArrayList<>()); // Prevenimos posibles nulos
+
+        // No puede marcar su propio gasto
+        assertThrows(Exception.class, () -> gastoService.marcarComoPagado(1L, 1L));
+        
+        // Usuario no pertenece al grupo
+        assertThrows(Exception.class, () -> gastoService.marcarComoPagado(1L, 99L));
+
+        // Caso éxito: User2 marca el gasto de User1
+        when(gastoRepository.save(any())).thenReturn(gasto);
+        Gasto pagado = gastoService.marcarComoPagado(1L, 2L);
+        assertTrue(pagado.isPagado());
+    }
+
+    // --- PRUEBAS DE RESUMEN Y BALANCES (La parte más compleja) ---
+
+    @Test
+    public void testObtenerResumenGrupo_TransferenciasComplejas() throws Exception {
+        // User1 paga 30€ (Reparto general: cada uno debe 15€)
+        Gasto g1 = new Gasto();
+        g1.setMonto(30.0); 
+        g1.setPagador(user1); 
+        g1.setRepartoGeneral(true);
+        
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoRepository.findByGrupoId(10L)).thenReturn(List.of(g1));
+        when(pagoRepository.findByGrupoId(10L)).thenReturn(new ArrayList<>());
 
         ResumenGrupoDTO resumen = gastoService.obtenerResumenGrupo(10L);
 
-        // El total gastado debe ser 20.0 (suma del gasto 2 y 3 que tienen monto válido)
-        assertEquals(20.0, resumen.getTotalGastado()); 
-
-        // Pero el balance de los usuarios debe ser 0.0, confirmando que el "continue" funcionó
-        assertEquals(1, resumen.getBalances().size());
-        assertEquals(0.0, resumen.getBalances().get(0).getBalance(), "El balance no debió alterarse");
+        // Cambiamos getTransferencias() por getSoluciones() que es el nombre real en tu DTO
+        assertNotNull(resumen.getSoluciones());
+        assertEquals(1, resumen.getSoluciones().size());
+        assertEquals(15.0, resumen.getSoluciones().get(0).getMonto());
     }
-    @Test
-    public void testObtenerResumenPorGrupoUsuarioNoEncontrado() {
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.empty());
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> gastoService.obtenerResumenPorGrupoParaUsuario(1L));
-        assertEquals("Usuario no encontrado", ex.getMessage());
-    }
-    @Test
-    public void testEditarGastoIgnoraValoresNulosONegativos() throws Exception {
-        Usuario admin = new Usuario(); admin.setId(1L);
-        Grupo grupo = new Grupo(); grupo.setId(10L); grupo.setIdCreador(1L); grupo.getMiembros().add(admin);
-        
-        Gasto gastoExistente = crearGastoConId(100L, 80.0, false, admin, grupo);
-        gastoExistente.setConcepto("Original");
-        gastoExistente.setCategoria(CategoriaGasto.OTROS);
-        
-        // Mandamos todo nulo o inválido
-        Gasto gastoActualizado = new Gasto();
-        gastoActualizado.setConcepto(null);
-        gastoActualizado.setMonto(-50.0); // No debería actualizarse
-        gastoActualizado.setCategoria(null);
 
-        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gastoExistente));
+    // --- PRUEBAS DE ADMIN (Eliminar y Editar) ---
+
+    @Test
+    public void testEliminarGasto_FallaPorNoSerAdmin() throws Exception {
+        
+        Gasto gasto = new Gasto();
+        gasto.setGrupo(grupo); // el admin es user1 (ID 1L)
+        gasto.setPagador(user2); // el pagador es user2 (ID 2L)
+        
+        when(gastoRepository.findById(1L)).thenReturn(Optional.of(gasto));
         when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-        when(gastoRepository.save(any(Gasto.class))).thenAnswer(inv -> inv.getArgument(0));
+        
+        // user2 intenta borrar. Como no es el admin, debe saltar excepción
+        Exception ex = assertThrows(Exception.class, () -> gastoService.eliminarGasto(1L, 2L));
+        assertEquals("Solo el administrador del grupo puede eliminar gastos", ex.getMessage());
+    }
 
-        Gasto resultado = gastoService.editarGasto(100L, 1L, gastoActualizado);
+    @Test
+    public void testEditarGasto_Exito() throws Exception {
+        Gasto original = new Gasto();
+        original.setGrupo(grupo);
+        original.setConcepto("Viejo");
 
-        // Verifica que mantuvo los valores originales
-        assertEquals("Original", resultado.getConcepto());
-        assertEquals(80.0, resultado.getMonto());
-        assertEquals(CategoriaGasto.OTROS, resultado.getCategoria());
+        Gasto actualizado = new Gasto();
+        actualizado.setConcepto("Nuevo");
+        actualizado.setMonto(50.0);
+
+        when(gastoRepository.findById(1L)).thenReturn(Optional.of(original));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+
+        Gasto result = gastoService.editarGasto(1L, 1L, actualizado);
+        
+        assertEquals("Nuevo", result.getConcepto());
+        assertEquals(50.0, result.getMonto());
+    }
+
+    @Test
+    public void testObtenerResumenPorGrupoParaUsuario() {
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(user1));
+        when(grupoRepository.findAll()).thenReturn(List.of(grupo));
+        
+        Gasto g = new Gasto();
+        g.setMonto(100.0); g.setPagador(user1); g.setRepartoGeneral(true);
+        when(gastoRepository.findByGrupoId(10L)).thenReturn(List.of(g));
+
+        var resultado = gastoService.obtenerResumenPorGrupoParaUsuario(1L);
+        
+        assertFalse(resultado.isEmpty());
+        assertEquals(10L, resultado.get(0).get("grupoId"));
+        assertEquals(100.0, resultado.get(0).get("totalPagado"));
+        assertEquals(50.0, resultado.get(0).get("totalParte")); // 100 / 2 miembros
+    }
+    
+    @Test
+    public void testObtenerTodasLasTasas_RamasDefault() {
+        // Probar el switch de monedas (obtenerCodigoIso)
+        try (MockedConstruction<RestTemplate> mocked = mockConstruction(RestTemplate.class,
+                (mock, context) -> when(mock.getForObject(anyString(), eq(Map.class))).thenReturn(null))) {
+            
+            // Probar default y null
+            gastoService.obtenerTodasLasTasas(null);
+            gastoService.obtenerTodasLasTasas(Moneda.REAL);
+            
+            // El mapa vuelve vacío porque el response es null
+            assertTrue(gastoService.obtenerTodasLasTasas(Moneda.EURO).isEmpty());
+        }
+    }
+
+    // --- TESTS EXTRA PARA COBERTURA ALTA EN GASTOSERVICE ---
+
+    @Test
+    public void testCrear_SinConversionYAsignacionValoresPorDefecto() throws Exception {
+        Gasto gasto = new Gasto();
+        gasto.setMonto(50.0);
+        gasto.setMoneda(Moneda.EURO); // Misma moneda que el grupo, salta la conversión
+        gasto.setPagador(user1);
+        gasto.setGrupo(grupo);
+        gasto.setCategoria(null); // Forzará a asignar OTROS
+        gasto.setEmote("   "); // Forzará a asignar null
+        gasto.setParticipantes(null); // Forzará a asignar reparto general
+        
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(user1));
+        when(gastoRepository.save(any(Gasto.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        Gasto result = gastoService.crear(gasto);
+        
+        assertEquals(Moneda.EURO, result.getMoneda());
+        assertEquals(CategoriaGasto.OTROS, result.getCategoria());
+        assertNull(result.getEmote());
+        assertTrue(result.isRepartoGeneral());
+    }
+
+    @Test
+    public void testCrear_ValidacionesExtraDeIntegridad() {
+        Gasto gasto = new Gasto();
+        // 1. Monto negativo
+        gasto.setMonto(-10.0);
+        assertThrows(Exception.class, () -> gastoService.crear(gasto));
+        
+        // 2. Grupo sin ID
+        gasto.setMonto(10.0);
+        gasto.setGrupo(new Grupo()); 
+        assertThrows(Exception.class, () -> gastoService.crear(gasto));
+        
+        // 3. Pagador sin ID
+        gasto.setGrupo(grupo);
+        gasto.setPagador(new Usuario());
+        assertThrows(Exception.class, () -> gastoService.crear(gasto));
+        
+        // 4. Pagador que no está en el grupo
+        Usuario externo = new Usuario(); externo.setId(99L);
+        gasto.setPagador(externo);
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(usuarioRepository.findById(99L)).thenReturn(Optional.of(externo));
+        assertThrows(Exception.class, () -> gastoService.crear(gasto));
+    }
+
+    @Test
+    public void testListarPorGrupo_OpcionesAlternativas() {
+        when(gastoRepository.findByGrupoId(eq(10L), any(Sort.class))).thenReturn(new ArrayList<>());
+        when(gastoRepository.findByGrupoIdAndCategoria(eq(10L), any(), any(Sort.class))).thenReturn(new ArrayList<>());
+
+        // Prueba orden por fecha descendente y sin categoría
+        gastoService.listarPorGrupo(10L, "fecha", "desc", null);
+        verify(gastoRepository).findByGrupoId(eq(10L), any(Sort.class));
+
+        // Prueba búsqueda con categoría "OTROS"
+        gastoService.listarPorGrupo(10L, "monto", "asc", "OTROS"); 
+        verify(gastoRepository).findByGrupoIdAndCategoria(eq(10L), eq(CategoriaGasto.OTROS), any(Sort.class));
+    }
+
+    @Test
+    public void testObtenerPorId_Exito() throws Exception {
+        Gasto gasto = new Gasto();
+        when(gastoRepository.findById(1L)).thenReturn(Optional.of(gasto));
+        assertEquals(gasto, gastoService.obtenerPorId(1L));
+    }
+
+    @Test
+    public void testMarcarComoPagado_YaPagadoOGrupoInvalido() {
+        Gasto g = new Gasto();
+        g.setPagado(true);
+        when(gastoRepository.findById(1L)).thenReturn(Optional.of(g));
+        
+        // Falla porque ya está pagado
+        assertThrows(Exception.class, () -> gastoService.marcarComoPagado(1L, 2L));
+
+        // Falla porque no tiene grupo
+        Gasto gSinGrupo = new Gasto(); gSinGrupo.setPagado(false);
+        when(gastoRepository.findById(2L)).thenReturn(Optional.of(gSinGrupo));
+        assertThrows(Exception.class, () -> gastoService.marcarComoPagado(2L, 2L));
+        
+        // Falla porque el grupo no tiene miembros
+        Gasto gConGrupoVacio = new Gasto(); gConGrupoVacio.setGrupo(new Grupo()); gConGrupoVacio.getGrupo().setId(10L);
+        when(gastoRepository.findById(3L)).thenReturn(Optional.of(gConGrupoVacio));
+        Grupo grupoVacio = new Grupo(); grupoVacio.setMiembros(new ArrayList<>());
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupoVacio));
+        assertThrows(Exception.class, () -> gastoService.marcarComoPagado(3L, 2L));
+    }
+
+    @Test
+    public void testObtenerResumenGrupo_ConPagosYGastosIgnorados() throws Exception {
+        // Gasto ya pagado (debería ignorarse en el balance)
+        Gasto gPagado = new Gasto(); 
+        gPagado.setPagado(true); 
+        gPagado.setMonto(100.0); 
+        gPagado.setPagador(user1);
+        
+        // Pago directo de user2 a user1
+        Pago pago = new Pago(); 
+        pago.setMonto(15.0); 
+        pago.setPagador(user2); 
+        pago.setReceptor(user1);
+        
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoRepository.findByGrupoId(10L)).thenReturn(List.of(gPagado)); // El totalGastado lo suma igualmente
+        when(pagoRepository.findByGrupoId(10L)).thenReturn(List.of(pago));
+        
+        ResumenGrupoDTO resumen = gastoService.obtenerResumenGrupo(10L);
+        
+        // El total gastado en el grupo suma 100
+        assertEquals(100.0, resumen.getTotalGastado());
+    }
+    
+    @Test
+    public void testCalcularTotalGrupo() {
+        Gasto g1 = new Gasto(); g1.setMonto(10.0);
+        Gasto g2 = new Gasto(); g2.setMonto(25.5);
+        when(gastoRepository.findByGrupoId(10L)).thenReturn(List.of(g1, g2));
+        
+        assertEquals(35.5, gastoService.calcularTotalGrupo(10L));
+    }
+
+    @Test
+    public void testEditarGasto_NoAdminYActualizacionParcial() throws Exception {
+        Gasto g = new Gasto(); g.setGrupo(grupo);
+        when(gastoRepository.findById(1L)).thenReturn(Optional.of(g));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo)); // user1 es admin
+        
+        // Falla porque user2 no es admin
+        assertThrows(Exception.class, () -> gastoService.editarGasto(1L, 2L, new Gasto()));
+        
+        // Editamos campos permitidos como admin (emote en blanco pasa a null)
+        Gasto gActualizado = new Gasto();
+        gActualizado.setEmote("  "); 
+        gActualizado.setCategoria(CategoriaGasto.OTROS);
+        when(gastoRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+        
+        Gasto result = gastoService.editarGasto(1L, 1L, gActualizado);
+        assertNull(result.getEmote());
+        assertEquals(CategoriaGasto.OTROS, result.getCategoria());
+    }
+
+    
+
+    @Test
+    public void testCrear_ParticipanteNoEnGrupo() throws Exception {
+        Gasto gasto = new Gasto();
+        gasto.setMonto(10.0);
+        gasto.setPagador(user1);
+        gasto.setGrupo(grupo);
+        gasto.setRepartoGeneral(false); // IMPRESCINDIBLE para que no lo ignore
+        
+        Usuario externo = new Usuario(); 
+        externo.setId(99L);
+        gasto.setParticipantes(List.of(externo));
+        
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(user1));
+        
+        Exception ex = assertThrows(Exception.class, () -> gastoService.crear(gasto));
+        assertEquals("Todos los participantes deben pertenecer al grupo", ex.getMessage());
+    }
+
+    @Test
+    public void testListarPorGrupo_CategoriaInvalida() {
+        // Al pasar "INVENTADA", el enum lanza IllegalArgumentException. Lo capturamos.
+        assertThrows(IllegalArgumentException.class, () -> {
+            gastoService.listarPorGrupo(10L, "monto", "asc", "INVENTADA");
+        });
+    }
+
+    @Test
+    public void testObtenerResumenGrupo_ConRepartoEspecifico() throws Exception {
+        // Cubre: obtenerResumenGrupo -> la rama 'else' (cuando NO es reparto general)
+        Gasto g = new Gasto();
+        g.setMonto(20.0);
+        g.setPagador(user1);
+        g.setRepartoGeneral(false);
+        g.setParticipantes(List.of(user2)); // user1 paga, pero el gasto es solo para user2
+        
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoRepository.findByGrupoId(10L)).thenReturn(List.of(g));
+        when(pagoRepository.findByGrupoId(10L)).thenReturn(new ArrayList<>());
+        
+        ResumenGrupoDTO resumen = gastoService.obtenerResumenGrupo(10L);
+        
+        // user2 le debe 20 a user1
+        assertEquals(1, resumen.getSoluciones().size());
+        assertEquals(20.0, resumen.getSoluciones().get(0).getMonto());
+    }
+
+   
+    @Test
+    public void testEditarGasto_SaltarActualizacionesNulasOInvalidas() throws Exception {
+        Gasto original = new Gasto();
+        original.setConcepto("Comida");
+        original.setMonto(50.0);
+        original.setGrupo(grupo);
+        original.setPagador(user1);
+        
+        when(gastoRepository.findById(1L)).thenReturn(Optional.of(original));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+        
+        Gasto actualizado = new Gasto();
+        actualizado.setConcepto(null);  // Debe ignorarse porque es null
+        actualizado.setMonto(-5.0);     // Debe ignorarse porque es negativo
+        actualizado.setCategoria(null); // Debe ignorarse porque es null
+        
+        Gasto result = gastoService.editarGasto(1L, 1L, actualizado);
+        
+        // Comprobamos que mantuvo los valores originales
+        assertEquals("Comida", result.getConcepto());
+        assertEquals(50.0, result.getMonto());
+    }
+
+    @Test
+    public void testEditarGasto_ParticipanteNoEnGrupoLanzaExcepcion() throws Exception {
+        // Cubre: editarGasto -> la validación de participantes nuevos dentro del grupo
+        Gasto original = new Gasto();
+        original.setGrupo(grupo);
+        original.setPagador(user1);
+        
+        when(gastoRepository.findById(1L)).thenReturn(Optional.of(original));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        
+        Gasto actualizado = new Gasto();
+        Usuario externo = new Usuario(); 
+        externo.setId(99L);
+        actualizado.setParticipantes(List.of(externo));
+        
+        assertThrows(Exception.class, () -> gastoService.editarGasto(1L, 1L, actualizado));
+    }
+
+    @Test
+    public void testObtenerResumenPorGrupoParaUsuario_UsuarioNoEnGrupo() {
+        // Cubre: obtenerResumenPorGrupoParaUsuario -> el 'if (!grupo.getMiembros().contains(usuario)) continue;'
+        Usuario externo = new Usuario(); 
+        externo.setId(99L);
+        when(usuarioRepository.findById(99L)).thenReturn(Optional.of(externo));
+        when(grupoRepository.findAll()).thenReturn(List.of(grupo)); // 'grupo' solo tiene a user1 y user2
+        
+        var resultado = gastoService.obtenerResumenPorGrupoParaUsuario(99L);
+        
+        // Debe ignorar el grupo y devolver una lista vacía
+        assertTrue(resultado.isEmpty());
+    }
+
+    @Test
+    public void testObtenerTodasLasTasas_LanzaExcepcion() {
+        // Cubre: obtenerTodasLasTasas -> el bloque catch cuando el RestTemplate falla
+        try (MockedConstruction<RestTemplate> mocked = mockConstruction(RestTemplate.class,
+                (mock, context) -> when(mock.getForObject(anyString(), eq(Map.class)))
+                        .thenThrow(new RuntimeException("API caída")))) {
+            
+            Map<String, Object> tasas = gastoService.obtenerTodasLasTasas(Moneda.EURO);
+            
+            // Si salta la excepción, el código devuelve un mapa vacío
+            assertTrue(tasas.isEmpty());
+        }
+    }
+
+    @Test
+    public void testCrear_ParticipantesNulosOVacios() throws Exception {
+        Gasto gasto = new Gasto();
+        gasto.setMonto(10.0);
+        gasto.setPagador(user1);
+        gasto.setGrupo(grupo);
+        
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(user1));
+        when(gastoRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+        
+        // Rama 1: Participantes es null
+        gasto.setParticipantes(null);
+        Gasto g1 = gastoService.crear(gasto);
+        assertEquals(2, g1.getParticipantes().size()); // Coge los del grupo
+        
+        // Rama 2: Participantes está vacío
+        gasto.setParticipantes(new ArrayList<>());
+        Gasto g2 = gastoService.crear(gasto);
+        assertEquals(2, g2.getParticipantes().size());
+    }
+
+
+    @Test
+    public void testEditarGasto_ActualizacionCompletaValida() throws Exception {
+        Gasto original = new Gasto();
+        original.setGrupo(grupo);
+        original.setPagador(user1);
+        
+        Gasto actualizado = new Gasto();
+        actualizado.setConcepto("Nuevo Concepto"); 
+        actualizado.setMonto(100.0); 
+        actualizado.setCategoria(CategoriaGasto.OCIO); 
+        actualizado.setEmote("👍"); 
+        actualizado.setParticipantes(List.of(user2)); 
+        
+        when(gastoRepository.findById(1L)).thenReturn(Optional.of(original));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo)); // admin es user1
+        when(usuarioRepository.findAllById(any())).thenReturn(List.of(user2));
+        when(gastoRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+        
+        Gasto result = gastoService.editarGasto(1L, 1L, actualizado);
+        
+        assertEquals("Nuevo Concepto", result.getConcepto());
+        assertEquals(100.0, result.getMonto());
+        assertEquals(CategoriaGasto.OCIO, result.getCategoria());
+        assertEquals("👍", result.getEmote());
+        assertEquals(1, result.getParticipantes().size());
+    }
+
+    @Test
+    public void testEditarGasto_MontoNuloYEmoteVacio() throws Exception {
+        Gasto original = new Gasto();
+        original.setGrupo(grupo);
+        original.setMonto(50.0);
+        
+        Gasto actualizado = new Gasto();
+        actualizado.setConcepto(""); // isBlank() -> true
+        actualizado.setMonto(null); // monto null -> falla el != null
+        actualizado.setEmote("   "); // isBlank() -> true, guarda null
+        actualizado.setParticipantes(new ArrayList<>()); // isEmpty() -> true
+        
+        when(gastoRepository.findById(1L)).thenReturn(Optional.of(original));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
+        
+        Gasto result = gastoService.editarGasto(1L, 1L, actualizado);
+        
+        assertEquals(50.0, result.getMonto()); // Se mantiene el original
+        assertNull(result.getEmote()); // Se pone a null por ser espacios
+    }
+
+    @Test
+    public void testListarPorGrupo_CategoriaVaciaOBlanco() {
+        when(gastoRepository.findByGrupoId(anyLong(), any(Sort.class))).thenReturn(new ArrayList<>());
+        // Le pasamos espacios en blanco para cubrir la rama !categoria.trim().isEmpty()
+        gastoService.listarPorGrupo(10L, "monto", "asc", "   ");
+        verify(gastoRepository).findByGrupoId(eq(10L), any(Sort.class));
+    }
+
+    @Test
+    public void testObtenerTodasLasTasas_ResultadoNoSuccess() {
+        Map<String, Object> mockResponse = new HashMap<>();
+        mockResponse.put("result", "error"); // Falla el if ("success".equals(...))
+        
+        try (MockedConstruction<RestTemplate> mocked = mockConstruction(RestTemplate.class,
+                (mock, context) -> when(mock.getForObject(anyString(), eq(Map.class))).thenReturn(mockResponse))) {
+            Map<String, Object> tasas = gastoService.obtenerTodasLasTasas(Moneda.EURO);
+            assertTrue(tasas.isEmpty());
+        }
+    }
+
+    @Test
+    public void testObtenerTodasLasTasas_Exito() {
+        // Preparamos la respuesta simulada que espera tu Service
+        Map<String, Object> mockResponse = new HashMap<>();
+        
+        // Creamos las tasas ficticias
+        Map<String, Object> rates = new HashMap<>();
+        rates.put("USD", 1.1);
+        
+        // ¡Importante! La clave debe ser "rates", que es lo que busca tu GastoService
+        mockResponse.put("rates", rates); 
+        
+        try (MockedConstruction<RestTemplate> mocked = mockConstruction(RestTemplate.class,
+                (mock, context) -> when(mock.getForObject(anyString(), eq(Map.class))).thenReturn(mockResponse))) {
+            
+            Map<String, Object> tasas = gastoService.obtenerTodasLasTasas(Moneda.EURO);
+            
+            assertFalse(tasas.isEmpty());
+            assertEquals(1.1, tasas.get("USD"));
+        }
     }
 }

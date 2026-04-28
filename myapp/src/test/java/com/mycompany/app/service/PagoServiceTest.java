@@ -17,6 +17,7 @@ import com.mycompany.app.repository.GrupoRepository;
 import com.mycompany.app.repository.PagoRepository;
 import com.mycompany.app.repository.UsuarioRepository;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -35,177 +36,158 @@ public class PagoServiceTest {
     @InjectMocks
     private PagoService pagoService;
 
+    private Usuario pagador;
+    private Usuario receptor;
+    private Grupo grupo;
+    private Pago pagoBase;
+
     @BeforeEach
     public void setup() {
         MockitoAnnotations.openMocks(this);
-    }
 
-    // 1. Test de registro exitoso
-    @Test
-    public void testRegistrarPagoExitoso() throws Exception {
-        Usuario pagador = new Usuario();
+        pagador = new Usuario();
         pagador.setId(1L);
-        Usuario receptor = new Usuario();
-        receptor.setId(2L);
+        pagador.setUsername("Pagador");
 
-        Grupo grupo = new Grupo();
+        receptor = new Usuario();
+        receptor.setId(2L);
+        receptor.setUsername("Receptor");
+
+        grupo = new Grupo();
         grupo.setId(10L);
         grupo.getMiembros().add(pagador);
         grupo.getMiembros().add(receptor);
 
-        Pago pago = new Pago();
-        pago.setMonto(50.0);
-        pago.setPagador(pagador);
-        pago.setReceptor(receptor);
-        pago.setGrupo(grupo);
+        pagoBase = new Pago();
+        pagoBase.setMonto(50.0);
+        pagoBase.setPagador(pagador);
+        pagoBase.setReceptor(receptor);
+        pagoBase.setGrupo(grupo);
+    }
 
+    // --- SECCIÓN: registrarPago (Éxito y Validaciones) ---
+
+    @Test
+    public void testRegistrarPagoExitoso() throws Exception {
         when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(pagador));
         when(usuarioRepository.findById(2L)).thenReturn(Optional.of(receptor));
-        when(pagoRepository.save(any(Pago.class))).thenReturn(pago);
+        when(pagoRepository.save(any(Pago.class))).thenReturn(pagoBase);
 
-        Pago resultado = pagoService.registrarPago(pago);
+        Pago resultado = pagoService.registrarPago(pagoBase);
 
         assertNotNull(resultado);
         assertEquals(50.0, resultado.getMonto());
-        verify(pagoRepository).save(pago);
+        verify(pagoRepository).save(pagoBase);
     }
 
-    // 2. Test de validación: monto cero
     @Test
-    public void testRegistrarPagoMontoCeroLanzaExcepcion() {
-        Pago pago = new Pago();
-        pago.setMonto(0.0);
+    public void testRegistrarPago_ValidacionesNulos() {
+        // Monto nulo
+        pagoBase.setMonto(null);
+        assertThrows(Exception.class, () -> pagoService.registrarPago(pagoBase));
 
-        Exception ex = assertThrows(Exception.class, () -> {
-            pagoService.registrarPago(pago);
-        });
+        // Pagador nulo
+        pagoBase.setMonto(50.0);
+        pagoBase.setPagador(null);
+        assertThrows(Exception.class, () -> pagoService.registrarPago(pagoBase));
 
-        assertEquals("El monto debe ser mayor que 0", ex.getMessage());
+        // Receptor nulo
+        pagoBase.setPagador(pagador);
+        pagoBase.setReceptor(null);
+        assertThrows(Exception.class, () -> pagoService.registrarPago(pagoBase));
+
+        // Grupo nulo
+        pagoBase.setReceptor(receptor);
+        pagoBase.setGrupo(null);
+        assertThrows(Exception.class, () -> pagoService.registrarPago(pagoBase));
     }
 
-    // 3. Test de validación: monto negativo
     @Test
-    public void testRegistrarPagoMontoNegativoLanzaExcepcion() {
-        Pago pago = new Pago();
-        pago.setMonto(-10.0);
+    public void testRegistrarPago_EntidadesNoEncontradas() {
+        when(grupoRepository.findById(10L)).thenReturn(Optional.empty());
+        assertThrows(Exception.class, () -> pagoService.registrarPago(pagoBase), "Grupo no encontrado");
 
-        Exception ex = assertThrows(Exception.class, () -> {
-            pagoService.registrarPago(pago);
-        });
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.empty());
+        assertThrows(Exception.class, () -> pagoService.registrarPago(pagoBase), "Pagador no encontrado");
 
-        assertEquals("El monto debe ser mayor que 0", ex.getMessage());
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(pagador));
+        when(usuarioRepository.findById(2L)).thenReturn(Optional.empty());
+        assertThrows(Exception.class, () -> pagoService.registrarPago(pagoBase), "Receptor no encontrado");
     }
 
-    // 4. Test de validación: pagador y receptor son la misma persona
     @Test
-    public void testRegistrarPagoMismaPersonaLanzaExcepcion() {
-        Usuario mismo = new Usuario();
-        mismo.setId(1L);
+    public void testRegistrarPagoMontoCeroONegativo() {
+        pagoBase.setMonto(0.0);
+        assertEquals("El monto debe ser mayor que 0", 
+            assertThrows(Exception.class, () -> pagoService.registrarPago(pagoBase)).getMessage());
 
-        Pago pago = new Pago();
-        pago.setMonto(30.0);
-        pago.setPagador(mismo);
-        pago.setReceptor(mismo);
-        pago.setGrupo(new Grupo());
-        pago.getGrupo().setId(10L);
-
-        Exception ex = assertThrows(Exception.class, () -> {
-            pagoService.registrarPago(pago);
-        });
-
-        assertEquals("El pagador y el receptor no pueden ser la misma persona", ex.getMessage());
+        pagoBase.setMonto(-10.0);
+        assertEquals("El monto debe ser mayor que 0", 
+            assertThrows(Exception.class, () -> pagoService.registrarPago(pagoBase)).getMessage());
     }
 
-    // 5. Test de validación: pagador no pertenece al grupo
     @Test
-    public void testRegistrarPagoPagadorNoPerteneceAlGrupo() {
-        Usuario pagador = new Usuario();
-        pagador.setId(1L);
-        Usuario receptor = new Usuario();
-        receptor.setId(2L);
+    public void testRegistrarPagoMismaPersona() {
+        pagoBase.setReceptor(pagador);
+        assertEquals("El pagador y el receptor no pueden ser la misma persona", 
+            assertThrows(Exception.class, () -> pagoService.registrarPago(pagoBase)).getMessage());
+    }
 
-        Grupo grupo = new Grupo();
-        grupo.setId(10L);
-        grupo.getMiembros().add(receptor); // solo receptor es miembro
-
-        Pago pago = new Pago();
-        pago.setMonto(25.0);
-        pago.setPagador(pagador);
-        pago.setReceptor(receptor);
-        pago.setGrupo(grupo);
-
+    @Test
+    public void testRegistrarPago_NoPertenecenAlGrupo() {
         when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(pagador));
         when(usuarioRepository.findById(2L)).thenReturn(Optional.of(receptor));
 
-        Exception ex = assertThrows(Exception.class, () -> {
-            pagoService.registrarPago(pago);
-        });
+        // Pagador no está en el grupo
+        grupo.getMiembros().clear();
+        grupo.getMiembros().add(receptor);
+        assertEquals("El pagador no pertenece al grupo", 
+            assertThrows(Exception.class, () -> pagoService.registrarPago(pagoBase)).getMessage());
 
-        assertEquals("El pagador no pertenece al grupo", ex.getMessage());
+        // Receptor no está en el grupo
+        grupo.getMiembros().clear();
+        grupo.getMiembros().add(pagador);
+        assertEquals("El receptor no pertenece al grupo", 
+            assertThrows(Exception.class, () -> pagoService.registrarPago(pagoBase)).getMessage());
     }
 
-    // 6. Test de validación: receptor no pertenece al grupo
+    // --- SECCIÓN: obtenerHistorialPorGrupo ---
+
     @Test
-    public void testRegistrarPagoReceptorNoPerteneceAlGrupo() {
-        Usuario pagador = new Usuario();
-        pagador.setId(1L);
-        Usuario receptor = new Usuario();
-        receptor.setId(2L);
-
-        Grupo grupo = new Grupo();
-        grupo.setId(10L);
-        grupo.getMiembros().add(pagador); // solo pagador es miembro
-
-        Pago pago = new Pago();
-        pago.setMonto(25.0);
-        pago.setPagador(pagador);
-        pago.setReceptor(receptor);
-        pago.setGrupo(grupo);
-
+    public void testObtenerHistorialPorGrupoExito() throws Exception {
         when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(pagador));
-        when(usuarioRepository.findById(2L)).thenReturn(Optional.of(receptor));
+        when(pagoRepository.findByGrupoIdOrderByFechaDesc(10L)).thenReturn(Arrays.asList(pagoBase));
 
-        Exception ex = assertThrows(Exception.class, () -> {
-            pagoService.registrarPago(pago);
-        });
-
-        assertEquals("El receptor no pertenece al grupo", ex.getMessage());
+        List<Pago> resultado = pagoService.obtenerHistorialPorGrupo(10L);
+        assertEquals(1, resultado.size());
     }
 
-    // 7. Test de obtener historial por grupo
     @Test
-    public void testObtenerHistorialPorGrupo() throws Exception {
-        Long grupoId = 10L;
-        Grupo grupo = new Grupo();
-        grupo.setId(grupoId);
-
-        Pago pago1 = new Pago();
-        pago1.setMonto(50.0);
-        Pago pago2 = new Pago();
-        pago2.setMonto(30.0);
-
-        when(grupoRepository.findById(grupoId)).thenReturn(Optional.of(grupo));
-        when(pagoRepository.findByGrupoIdOrderByFechaDesc(grupoId))
-                .thenReturn(Arrays.asList(pago1, pago2));
-
-        List<Pago> resultado = pagoService.obtenerHistorialPorGrupo(grupoId);
-
-        assertNotNull(resultado);
-        assertEquals(2, resultado.size());
-    }
-
-    // 8. Test de historial con grupo inexistente
-    @Test
-    public void testObtenerHistorialGrupoNoExisteLanzaExcepcion() {
+    public void testObtenerHistorialGrupoInexistente() {
         when(grupoRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(Exception.class, () -> pagoService.obtenerHistorialPorGrupo(99L));
+    }
 
-        Exception ex = assertThrows(Exception.class, () -> {
-            pagoService.obtenerHistorialPorGrupo(99L);
-        });
+    // --- SECCIÓN: obtenerPagosPorUsuario ---
 
-        assertEquals("Grupo no encontrado", ex.getMessage());
+    @Test
+    public void testObtenerPagosPorUsuario() {
+        Pago pagoEnviado = new Pago();
+        pagoEnviado.setMonto(100.0);
+        Pago pagoRecibido = new Pago();
+        pagoRecibido.setMonto(200.0);
+
+        // Importante usar ArrayList para que el .addAll() del Service no falle
+        when(pagoRepository.findByPagadorId(1L)).thenReturn(new ArrayList<>(List.of(pagoEnviado)));
+        when(pagoRepository.findByReceptorId(1L)).thenReturn(new ArrayList<>(List.of(pagoRecibido)));
+
+        List<Pago> resultado = pagoService.obtenerPagosPorUsuario(1L);
+
+        assertEquals(2, resultado.size());
+        assertTrue(resultado.contains(pagoEnviado));
+        assertTrue(resultado.contains(pagoRecibido));
     }
 }

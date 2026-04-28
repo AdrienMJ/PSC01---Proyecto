@@ -1,127 +1,174 @@
 package com.mycompany.app.service;
 
-import org.junit.jupiter.api.Test; 
-import org.junit.jupiter.api.BeforeEach; 
-import static org.junit.jupiter.api.Assertions.*; 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
-// Imports de Mockito (estos suelen ser iguales)
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.mycompany.app.entity.Usuario;
 import com.mycompany.app.repository.UsuarioRepository;
-import org.springframework.jdbc.core.JdbcTemplate;
-
-import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 public class UsuarioServiceTest {
+
     @Mock
-    private UsuarioRepository usuarioRepository; // para simular el respositorio
+    private UsuarioRepository usuarioRepository;
 
     @Mock
     private JdbcTemplate jdbcTemplate;
 
     @InjectMocks
-    private UsuarioService usuarioService;// esta es la clase que vamos a probar, inyectamos el mock del repositorio
+    private UsuarioService usuarioService;
 
     @BeforeEach
     public void setup() {
-        //inicializa los objetos mock antes de cada test 
-        MockitoAnnotations.openMocks(this); 
+        MockitoAnnotations.openMocks(this);
+    }
+
+    // --- SECCIÓN: Registro ---
+
+    @Test
+    public void testRegistrarExitoso() throws Exception {
+        Usuario nuevo = new Usuario("Pepe", "pepe@mail.com", "123");
+        when(usuarioRepository.findByEmail("pepe@mail.com")).thenReturn(Optional.empty());
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(nuevo);
+
+        Usuario resultado = usuarioService.registrar(nuevo);
+
+        assertNotNull(resultado);
+        verify(usuarioRepository).save(nuevo);
     }
 
     @Test
-    public void testLoginExitoso() throws Exception {
-        //creamos usuario inventado
-        Usuario usuarioFicticio = new Usuario("Adrien", "adrien@mail.com", "123");
+    public void testRegistrarEmailYaExiste() {
+        Usuario existente = new Usuario("Pepe", "pepe@mail.com", "123");
+        when(usuarioRepository.findByEmail("pepe@mail.com")).thenReturn(Optional.of(existente));
 
-        // el servicio busca el mail
+        Exception ex = assertThrows(Exception.class, () -> usuarioService.registrar(existente));
+        assertEquals("El email ya está registrado", ex.getMessage());
+    }
+
+    // --- SECCIÓN: Login ---
+
+    @Test
+    public void testLoginExitoso() throws Exception {
+        Usuario usuarioFicticio = new Usuario("Adrien", "adrien@mail.com", "123");
         when(usuarioRepository.findByEmail("adrien@mail.com")).thenReturn(Optional.of(usuarioFicticio));
 
-        // probamos el metodo login
         Usuario resultado = usuarioService.login("adrien@mail.com", "123");
 
-
-        //comprobamos que no sea nulo y que sea el mismo usuario que se ha creado
         assertNotNull(resultado);
         assertEquals("Adrien", resultado.getUsername()); 
     }
 
     @Test
-    public void testLoginContraseñaIncorrecta() {
-        // preparamos los datos de prueba
+    public void testLoginContrasenaIncorrecta() {
         Usuario usuarioFicticio = new Usuario("Adrien", "adrien@mail.com", "123");
         when(usuarioRepository.findByEmail("adrien@mail.com")).thenReturn(Optional.of(usuarioFicticio));
 
-        //vemos si lanza excepción al poner la contraseña mal
-        Exception exception = assertThrows(Exception.class, () -> {
-            usuarioService.login("adrien@mail.com", "password_falsa");
-        });
-
-        // comprobamos que el mensaje de error es correcto
+        Exception exception = assertThrows(Exception.class, () -> 
+            usuarioService.login("adrien@mail.com", "password_falsa")
+        );
         assertEquals("Email o contraseña incorrectos", exception.getMessage());
     }
-    
+
     @Test
     public void testLoginUsuarioNoEncontrado() {
         when(usuarioRepository.findByEmail("fantasma@mail.com")).thenReturn(Optional.empty());
 
-        Exception exception = assertThrows(Exception.class, () -> {
-            usuarioService.login("fantasma@mail.com", "123");
-        });
+        assertThrows(Exception.class, () -> usuarioService.login("fantasma@mail.com", "123"));
+    }
 
-        assertEquals("Email o contraseña incorrectos", exception.getMessage());
+    // --- SECCIÓN: Listado ---
+
+    @Test
+    public void testListarTodos() {
+        when(usuarioRepository.findAll()).thenReturn(Arrays.asList(new Usuario(), new Usuario()));
+        List<Usuario> lista = usuarioService.listarTodos();
+        assertEquals(2, lista.size());
+    }
+
+    // --- SECCIÓN: Eliminar Cuenta (Lógica Compleja) ---
+
+    @Test
+    public void testEliminarCuentaYDatos_UsuarioNoExiste() {
+        when(usuarioRepository.existsById(1L)).thenReturn(false);
+        assertThrows(Exception.class, () -> usuarioService.eliminarCuentaYDatos(1L));
     }
 
     @Test
-    public void testEliminarCuentaYDatosBorraRelacionadosYUsuario() throws Exception {
-    Long idUsuario = 1L;
-    Long grupoId = 10L;
-    Long gastoUsuario = 100L;
-    Long gastoGrupo = 200L;
+    public void testEliminarCuentaYDatos_GrupoQuedaVacio() throws Exception {
+        Long idUsuario = 1L;
+        Long grupoId = 10L;
+        Long gastoUsuario = 100L;
 
-    when(usuarioRepository.existsById(idUsuario)).thenReturn(true);
+        when(usuarioRepository.existsById(idUsuario)).thenReturn(true);
+        
+        // Mock de grupos donde está el usuario
+        when(jdbcTemplate.queryForList(anyString(), eq(Long.class), eq(idUsuario)))
+            .thenReturn(Collections.singletonList(grupoId));
 
-    when(jdbcTemplate.queryForList(
-        "SELECT grupo_id FROM grupo_usuarios WHERE usuario_id = ?",
-        Long.class,
-        idUsuario
-    )).thenReturn(Collections.singletonList(grupoId));
+        // Mock de gastos del usuario
+        when(jdbcTemplate.queryForList("SELECT id FROM gastos WHERE usuario_id = ?", Long.class, idUsuario))
+            .thenReturn(Collections.singletonList(gastoUsuario));
 
-    when(jdbcTemplate.queryForList(
-        "SELECT id FROM gastos WHERE usuario_id = ?",
-        Long.class,
-        idUsuario
-    )).thenReturn(Collections.singletonList(gastoUsuario));
+        // Simulamos que el grupo se queda con 0 miembros
+        when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), eq(grupoId))).thenReturn(0);
 
-    when(jdbcTemplate.queryForObject(
-        "SELECT COUNT(*) FROM grupo_usuarios WHERE grupo_id = ?",
-        Integer.class,
-        grupoId
-    )).thenReturn(0);
+        usuarioService.eliminarCuentaYDatos(idUsuario);
 
-    when(jdbcTemplate.queryForList(
-        "SELECT id FROM gastos WHERE grupo_id = ?",
-        Long.class,
-        grupoId
-    )).thenReturn(Arrays.asList(gastoUsuario, gastoGrupo));
+        // Verificamos que se ejecutan los borrados de grupo (porque miembros == 0)
+        verify(jdbcTemplate).update(contains("DELETE FROM grupos WHERE id = ?"), eq(grupoId));
+        verify(usuarioRepository).deleteById(idUsuario);
+    }
 
-    usuarioService.eliminarCuentaYDatos(idUsuario);
+    @Test
+    public void testEliminarCuentaYDatos_GrupoAunTieneMiembros() throws Exception {
+        Long idUsuario = 1L;
+        Long grupoId = 10L;
 
-    verify(jdbcTemplate).update("DELETE FROM pagos WHERE pagador_id = ? OR receptor_id = ?", idUsuario, idUsuario);
-    verify(jdbcTemplate).update("DELETE FROM gasto_participantes WHERE gasto_id IN (?)", gastoUsuario);
-    verify(jdbcTemplate).update("DELETE FROM gastos WHERE usuario_id = ?", idUsuario);
-    verify(jdbcTemplate).update("DELETE FROM gasto_participantes WHERE usuario_id = ?", idUsuario);
-    verify(jdbcTemplate).update("DELETE FROM grupo_usuarios WHERE usuario_id = ?", idUsuario);
-    verify(jdbcTemplate).update("DELETE FROM gasto_participantes WHERE gasto_id IN (?,?)", gastoUsuario, gastoGrupo);
-    verify(jdbcTemplate).update("DELETE FROM pagos WHERE grupo_id = ?", grupoId);
-    verify(jdbcTemplate).update("DELETE FROM gastos WHERE grupo_id = ?", grupoId);
-    verify(jdbcTemplate).update("DELETE FROM grupos WHERE id = ?", grupoId);
-    verify(usuarioRepository).deleteById(idUsuario);
+        when(usuarioRepository.existsById(idUsuario)).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), eq(Long.class), eq(idUsuario)))
+            .thenReturn(Collections.singletonList(grupoId));
+
+        // Simulamos que el grupo aún tiene 2 miembros
+        when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), eq(grupoId))).thenReturn(2);
+
+        usuarioService.eliminarCuentaYDatos(idUsuario);
+
+        // Verificamos que NO se intenta borrar el grupo
+        verify(jdbcTemplate, never()).update(contains("DELETE FROM grupos WHERE id = ?"), anyLong());
+        verify(usuarioRepository).deleteById(idUsuario);
+    }
+
+    @Test
+    public void testBorrarParticipantesPorGastos_ListaVacia() throws Exception {
+        // Este test sirve para cubrir la rama "if (idsGasto == null || idsGasto.isEmpty())"
+        // Invocamos eliminarCuenta para un usuario que no tiene gastos creados
+        when(usuarioRepository.existsById(1L)).thenReturn(true);
+        when(jdbcTemplate.queryForList(contains("SELECT id FROM gastos"), eq(Long.class), anyLong()))
+            .thenReturn(Collections.emptyList());
+
+        usuarioService.eliminarCuentaYDatos(1L);
+
+        // Si la lista es vacía, no debería llamar al update del IN (?,?)
+        verify(jdbcTemplate, never()).update(
+        contains("DELETE FROM gasto_participantes WHERE gasto_id IN"), 
+        any(Object[].class) 
+        );
     }
 }

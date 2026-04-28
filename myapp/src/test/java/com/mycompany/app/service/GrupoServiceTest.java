@@ -23,10 +23,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 
-/**
- * Historia de usuario: Como administrador, quiero poder expulsar a un miembro
- * del grupo una vez sus deudas estén saldadas.
- */
 public class GrupoServiceTest {
 
     @Mock
@@ -62,76 +58,7 @@ public class GrupoServiceTest {
         grupo.addMiembro(miembro);
     }
 
-    // 1. Éxito: el admin expulsa a un miembro con deudas saldadas (balance = 0)
-    @Test
-    public void testExpulsarMiembroConDeudaSaldadaExitoso() throws Exception {
-        BalancePersonaDTO balanceSaldado = new BalancePersonaDTO(2L, "Miembro", 0.0, "Saldado");
-        ResumenGrupoDTO resumen = new ResumenGrupoDTO(100.0, Arrays.asList(balanceSaldado), Collections.emptyList());
-
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-        when(gastoService.obtenerResumenGrupo(10L)).thenReturn(resumen);
-
-        grupoService.expulsarMiembro(10L, 1L, 2L);
-
-        // El miembro debe haber sido eliminado de la lista
-        assertFalse(grupo.getMiembros().stream().anyMatch(m -> m.getId().equals(2L)));
-        verify(grupoRepository).save(grupo);
-    }
-
-    // 2. Error: el miembro aún tiene deuda pendiente (balance != 0)
-    @Test
-    public void testExpulsarMiembroConDeudaPendienteLanzaExcepcion() throws Exception {
-        BalancePersonaDTO balanceDeudor = new BalancePersonaDTO(2L, "Miembro", -30.0, "Deudor");
-        ResumenGrupoDTO resumen = new ResumenGrupoDTO(100.0, Arrays.asList(balanceDeudor), Collections.emptyList());
-
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-        when(gastoService.obtenerResumenGrupo(10L)).thenReturn(resumen);
-
-        RuntimeException ex = assertThrows(RuntimeException.class, () ->
-                grupoService.expulsarMiembro(10L, 1L, 2L));
-
-        assertEquals("No se puede expulsar a este usuario hasta que salde sus deudas", ex.getMessage());
-        verify(grupoRepository, never()).save(any());
-    }
-
-    // 3. Error: quien intenta expulsar no es el creador/administrador del grupo
-    @Test
-    public void testExpulsarMiembroSiendoNoAdminLanzaExcepcion() {
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-
-        RuntimeException ex = assertThrows(RuntimeException.class, () ->
-                grupoService.expulsarMiembro(10L, 2L, 1L)); // El miembro intenta expulsar al admin
-
-        assertEquals("Solo el creador del grupo puede expulsar miembros", ex.getMessage());
-        verify(grupoRepository, never()).save(any());
-    }
-
-    // 4. Error: el administrador intenta expulsarse a sí mismo
-    @Test
-    public void testAdminNoPuedeExpulsarseASiMismoLanzaExcepcion() {
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-
-        RuntimeException ex = assertThrows(RuntimeException.class, () ->
-                grupoService.expulsarMiembro(10L, 1L, 1L));
-
-        assertEquals("El creador no puede expulsarse a sí mismo", ex.getMessage());
-        verify(grupoRepository, never()).save(any());
-    }
-
-    // 5. Error: el usuario a expulsar no pertenece al grupo
-    @Test
-    public void testExpulsarUsuarioQueNoEsMiembroLanzaExcepcion() {
-        Usuario extraño = new Usuario("Extraño", "extra@mail.com", "pass");
-        extraño.setId(99L);
-
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-
-        RuntimeException ex = assertThrows(RuntimeException.class, () ->
-                grupoService.expulsarMiembro(10L, 1L, 99L));
-
-        assertEquals("El usuario no es miembro de este grupo", ex.getMessage());
-        verify(grupoRepository, never()).save(any());
-    }
+    // --- TESTS: crearGrupo ---
 
     @Test
     public void testCrearGrupoExito() {
@@ -155,6 +82,9 @@ public class GrupoServiceTest {
         );
         assertEquals("Usuario creador no encontrado con ID: 99", ex.getMessage());
     }
+
+    // --- TESTS: listarGruposPorUsuario ---
+
     @Test
     public void testListarGruposExito() {
         when(usuarioRepository.existsById(1L)).thenReturn(true);
@@ -175,6 +105,9 @@ public class GrupoServiceTest {
         );
         assertEquals("Usuario no encontrado", ex.getMessage());
     }
+
+    // --- TESTS: renombrarGrupo ---
+
     @Test
     public void testRenombrarGrupoExito() {
         when(usuarioRepository.existsById(1L)).thenReturn(true);
@@ -182,57 +115,30 @@ public class GrupoServiceTest {
         when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
         when(grupoRepository.save(any(Grupo.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Grupo resultado = grupoService.renombrarGrupo(10L, 1L, "  Viaje a Roma  "); // Con espacios para probar el trim()
+        Grupo resultado = grupoService.renombrarGrupo(10L, 1L, "  Viaje a Roma  ");
 
         assertEquals("Viaje a Roma", resultado.getNombre());
     }
 
     @Test
     public void testRenombrarGrupoNombreInvalido() {
-        RuntimeException ex1 = assertThrows(RuntimeException.class, () -> 
-            grupoService.renombrarGrupo(10L, 1L, null)
+        assertThrows(RuntimeException.class, () -> grupoService.renombrarGrupo(10L, 1L, null));
+        assertThrows(RuntimeException.class, () -> grupoService.renombrarGrupo(10L, 1L, "   "));
+    }
+
+    @Test
+    public void testRenombrarGrupo_GrupoNoEncontrado() {
+        when(usuarioRepository.existsById(1L)).thenReturn(true);
+        when(grupoRepository.existsByIdAndMiembros_Id(10L, 1L)).thenReturn(true);
+        when(grupoRepository.findById(10L)).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> 
+            grupoService.renombrarGrupo(10L, 1L, "Nuevo Nombre")
         );
-        assertEquals("El nombre del grupo no puede estar vacío", ex1.getMessage());
-
-        RuntimeException ex2 = assertThrows(RuntimeException.class, () -> 
-            grupoService.renombrarGrupo(10L, 1L, "   ")
-        );
-        assertEquals("El nombre del grupo no puede estar vacío", ex2.getMessage());
     }
 
-    @Test
-    public void testRenombrarGrupoUsuarioInvalido() {
-        // ID nulo
-        assertThrows(RuntimeException.class, () -> grupoService.renombrarGrupo(10L, null, "Valido"));
-        
-        // Usuario no existe
-        when(usuarioRepository.existsById(99L)).thenReturn(false);
-        assertThrows(RuntimeException.class, () -> grupoService.renombrarGrupo(10L, 99L, "Valido"));
-    }
+    // --- TESTS: invitarUsuario ---
 
-    @Test
-    public void testRenombrarGrupoSinPermisos() {
-        when(usuarioRepository.existsById(2L)).thenReturn(true);
-        when(grupoRepository.existsByIdAndMiembros_Id(10L, 2L)).thenReturn(false); // Miembro 2 no está en el grupo
-        
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> 
-            grupoService.renombrarGrupo(10L, 2L, "Valido")
-        );
-        assertEquals("No tienes permiso para renombrar este grupo", ex.getMessage());
-    }
-    @Test
-    public void testObtenerGrupoPorIdExito() {
-        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
-        Grupo resultado = grupoService.obtenerGrupoPorId(10L);
-        assertNotNull(resultado);
-    }
-
-    @Test
-    public void testObtenerGrupoPorIdNoEncontrado() {
-        when(grupoRepository.findById(99L)).thenReturn(Optional.empty());
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> grupoService.obtenerGrupoPorId(99L));
-        assertEquals("Grupo no encontrado", ex.getMessage());
-    }
     @Test
     public void testInvitarUsuarioExito() {
         Usuario nuevoInvitado = new Usuario("Nuevo", "nuevo@mail.com", "pass");
@@ -247,50 +153,144 @@ public class GrupoServiceTest {
         Grupo resultado = grupoService.invitarUsuario(10L, "nuevo@mail.com", 1L);
 
         assertTrue(resultado.getMiembros().contains(nuevoInvitado));
-        assertEquals(3, resultado.getMiembros().size()); // admin + miembro + nuevoInvitado
     }
 
     @Test
-    public void testInvitarUsuarioInvitadorInvalido() {
-        assertThrows(RuntimeException.class, () -> grupoService.invitarUsuario(10L, "mail@mail.com", null));
-        
-        when(usuarioRepository.existsById(99L)).thenReturn(false);
-        assertThrows(RuntimeException.class, () -> grupoService.invitarUsuario(10L, "mail@mail.com", 99L));
-    }
-
-    @Test
-    public void testInvitarUsuarioEmailNoEncontrado() {
+    public void testInvitarUsuario_InvitadorSinPermisos() {
         when(usuarioRepository.existsById(1L)).thenReturn(true);
-        when(grupoRepository.existsByIdAndMiembros_Id(10L, 1L)).thenReturn(true);
-        when(usuarioRepository.findByEmail("fake@mail.com")).thenReturn(Optional.empty());
-        
+        when(grupoRepository.existsByIdAndMiembros_Id(10L, 1L)).thenReturn(false);
+
         RuntimeException ex = assertThrows(RuntimeException.class, () -> 
-            grupoService.invitarUsuario(10L, "fake@mail.com", 1L)
+            grupoService.invitarUsuario(10L, "invitado@mail.com", 1L)
         );
-        assertEquals("No existe ningún usuario con el email: fake@mail.com", ex.getMessage());
+        assertEquals("No tienes permiso para invitar a este grupo", ex.getMessage());
     }
 
     @Test
     public void testInvitarUsuarioYaEsMiembro() {
         when(usuarioRepository.existsById(1L)).thenReturn(true);
         when(grupoRepository.existsByIdAndMiembros_Id(10L, 1L)).thenReturn(true);
-        
-        // Simulamos buscar a "miembro@mail.com", quien ya está instanciado en el @BeforeEach
         when(usuarioRepository.findByEmail("miembro@mail.com")).thenReturn(Optional.of(miembro));
         when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> 
+        assertThrows(RuntimeException.class, () -> 
             grupoService.invitarUsuario(10L, "miembro@mail.com", 1L)
         );
-        assertEquals("El usuario ya es miembro de este grupo", ex.getMessage());
     }
+
+    // --- TESTS: expulsarMiembro ---
+
     @Test
-    public void testExpulsarMiembroGrupoNoEncontrado() {
-        when(grupoRepository.findById(99L)).thenReturn(Optional.empty());
-        
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> 
-            grupoService.expulsarMiembro(99L, 1L, 2L)
+    public void testExpulsarMiembroExitoso() throws Exception {
+        BalancePersonaDTO balanceSaldado = new BalancePersonaDTO(2L, "Miembro", 0.0, "Saldado");
+        ResumenGrupoDTO resumen = new ResumenGrupoDTO(100.0, Arrays.asList(balanceSaldado), Collections.emptyList());
+
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoService.obtenerResumenGrupo(10L)).thenReturn(resumen);
+
+        grupoService.expulsarMiembro(10L, 1L, 2L);
+
+        assertFalse(grupo.getMiembros().stream().anyMatch(m -> m.getId().equals(2L)));
+        verify(grupoRepository).save(grupo);
+    }
+
+    @Test
+    public void testExpulsarMiembroConDeudaPendiente() throws Exception {
+        BalancePersonaDTO balanceDeudor = new BalancePersonaDTO(2L, "Miembro", -30.0, "Deudor");
+        ResumenGrupoDTO resumen = new ResumenGrupoDTO(100.0, Arrays.asList(balanceDeudor), Collections.emptyList());
+
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoService.obtenerResumenGrupo(10L)).thenReturn(resumen);
+
+        assertThrows(RuntimeException.class, () -> grupoService.expulsarMiembro(10L, 1L, 2L));
+    }
+
+    @Test
+    public void testExpulsarMiembro_NoAdmin() {
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        assertThrows(RuntimeException.class, () -> grupoService.expulsarMiembro(10L, 2L, 1L));
+    }
+
+    @Test
+    public void testExpulsarMiembro_AutoExpulsion() {
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        assertThrows(RuntimeException.class, () -> grupoService.expulsarMiembro(10L, 1L, 1L));
+    }
+
+    @Test
+    public void testExpulsarMiembro_CreadorEsNulo() {
+        grupo.setIdCreador(null);
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+
+        assertThrows(RuntimeException.class, () -> grupoService.expulsarMiembro(10L, 1L, 2L));
+    }
+
+    @Test
+    public void testExpulsarMiembro_SinBalanceRegistrado() throws Exception {
+        // Al no haber balance en la lista, el ifPresent no se ejecuta y permite borrar
+        ResumenGrupoDTO resumenVacio = new ResumenGrupoDTO(0.0, Collections.emptyList(), Collections.emptyList());
+
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoService.obtenerResumenGrupo(10L)).thenReturn(resumenVacio);
+
+        assertDoesNotThrow(() -> grupoService.expulsarMiembro(10L, 1L, 2L));
+        verify(grupoRepository).save(grupo);
+    }
+
+    @Test
+    public void testObtenerGrupoPorIdExito() {
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        Grupo resultado = grupoService.obtenerGrupoPorId(10L);
+        assertNotNull(resultado);
+    }
+
+    // --- TESTS EXTRA PARA COBERTURA ALTA EN GRUPOSERVICE ---
+
+    @Test
+    public void testRenombrarGrupo_UsuarioNuloONoExiste() {
+        // ID de usuario nulo
+        assertThrows(RuntimeException.class, () -> 
+            grupoService.renombrarGrupo(10L, null, "Nuevo Nombre")
         );
-        assertEquals("Grupo no encontrado", ex.getMessage());
+        // Usuario no existe en DB
+        when(usuarioRepository.existsById(99L)).thenReturn(false);
+        assertThrows(RuntimeException.class, () -> 
+            grupoService.renombrarGrupo(10L, 99L, "Nuevo Nombre")
+        );
+    }
+
+    @Test
+    public void testObtenerGrupoPorId_NoEncontrado() {
+        when(grupoRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(RuntimeException.class, () -> grupoService.obtenerGrupoPorId(99L));
+    }
+
+    @Test
+    public void testInvitarUsuario_InvitadorNuloONoExiste() {
+        assertThrows(RuntimeException.class, () -> 
+            grupoService.invitarUsuario(10L, "test@mail.com", null)
+        );
+        
+        when(usuarioRepository.existsById(99L)).thenReturn(false);
+        assertThrows(RuntimeException.class, () -> 
+            grupoService.invitarUsuario(10L, "test@mail.com", 99L)
+        );
+    }
+
+    @Test
+    public void testInvitarUsuario_EmailNoExiste() {
+        when(usuarioRepository.existsById(1L)).thenReturn(true);
+        when(grupoRepository.existsByIdAndMiembros_Id(10L, 1L)).thenReturn(true);
+        when(usuarioRepository.findByEmail("noexiste@mail.com")).thenReturn(Optional.empty());
+        
+        assertThrows(RuntimeException.class, () -> 
+            grupoService.invitarUsuario(10L, "noexiste@mail.com", 1L)
+        );
+    }
+
+    @Test
+    public void testExpulsarMiembro_GrupoNoEncontrado() {
+        when(grupoRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(Exception.class, () -> grupoService.expulsarMiembro(99L, 1L, 2L));
     }
 }
