@@ -731,4 +731,175 @@ public class GastoServiceTest {
         assertNotNull(resultado);
         verify(gastoRepository).findByGrupoId(eq(grupoId), any(Sort.class));
     }
+
+    // ================== Tests para editar/eliminar gastos (HU administrador) ==================
+
+    @Test
+    public void testEliminarGastoComoAdministradorExitoso() throws Exception {
+        Usuario admin = new Usuario();
+        admin.setId(1L);
+
+        Usuario miembro = new Usuario();
+        miembro.setId(2L);
+
+        Grupo grupo = new Grupo();
+        grupo.setId(10L);
+        grupo.setIdCreador(1L);
+        grupo.getMiembros().add(admin);
+        grupo.getMiembros().add(miembro);
+
+        Gasto gasto = crearGastoConId(100L, 80.0, false, admin, grupo);
+        gasto.setParticipantes(new java.util.ArrayList<>(Arrays.asList(admin, miembro)));
+
+        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gasto));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+
+        gastoService.eliminarGasto(100L, 1L);
+
+        assertTrue(gasto.getParticipantes().isEmpty());
+        verify(gastoRepository).delete(gasto);
+    }
+
+    @Test
+    public void testEliminarGastoComoNoAdministradorLanzaExcepcion() throws Exception {
+        Usuario admin = new Usuario();
+        admin.setId(1L);
+
+        Grupo grupo = new Grupo();
+        grupo.setId(10L);
+        grupo.setIdCreador(1L);
+        grupo.getMiembros().add(admin);
+
+        Gasto gasto = crearGastoConId(100L, 80.0, false, admin, grupo);
+
+        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gasto));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+
+        Exception ex = assertThrows(Exception.class, () -> gastoService.eliminarGasto(100L, 99L));
+
+        assertEquals("Solo el administrador del grupo puede eliminar gastos", ex.getMessage());
+        verify(gastoRepository, never()).delete(any(Gasto.class));
+    }
+
+    @Test
+    public void testEliminarGastoNoEncontradoLanzaExcepcion() {
+        when(gastoRepository.findById(999L)).thenReturn(Optional.empty());
+
+        Exception ex = assertThrows(Exception.class, () -> gastoService.eliminarGasto(999L, 1L));
+
+        assertEquals("Gasto no encontrado", ex.getMessage());
+        verify(gastoRepository, never()).delete(any(Gasto.class));
+    }
+
+    @Test
+    public void testEditarGastoComoAdministradorExitoso() throws Exception {
+        Usuario admin = new Usuario();
+        admin.setId(1L);
+        admin.setUsername("Admin");
+
+        Usuario miembro = new Usuario();
+        miembro.setId(2L);
+        miembro.setUsername("Miembro");
+
+        Grupo grupo = new Grupo();
+        grupo.setId(10L);
+        grupo.setIdCreador(1L);
+        grupo.getMiembros().add(admin);
+        grupo.getMiembros().add(miembro);
+
+        Gasto gastoExistente = crearGastoConId(100L, 80.0, false, admin, grupo);
+        gastoExistente.setConcepto("Cena vieja");
+        gastoExistente.setCategoria(CategoriaGasto.OTROS);
+        gastoExistente.setEmote(":)");
+        gastoExistente.setParticipantes(new java.util.ArrayList<>(Arrays.asList(admin, miembro)));
+
+        Gasto gastoActualizado = new Gasto();
+        gastoActualizado.setConcepto("Cena corregida");
+        gastoActualizado.setMonto(120.0);
+        gastoActualizado.setCategoria(CategoriaGasto.COMIDA);
+        gastoActualizado.setEmote("  ");
+        gastoActualizado.setParticipantes(Arrays.asList(admin));
+
+        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gastoExistente));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(usuarioRepository.findAllById(any())).thenReturn(Arrays.asList(admin));
+        when(gastoRepository.save(any(Gasto.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Gasto resultado = gastoService.editarGasto(100L, 1L, gastoActualizado);
+
+        assertEquals("Cena corregida", resultado.getConcepto());
+        assertEquals(120.0, resultado.getMonto(), 0.001);
+        assertEquals(CategoriaGasto.COMIDA, resultado.getCategoria());
+        assertNull(resultado.getEmote());
+        assertEquals(1, resultado.getParticipantes().size());
+        assertFalse(resultado.isRepartoGeneral());
+        verify(gastoRepository).save(gastoExistente);
+    }
+
+    @Test
+    public void testEditarGastoComoNoAdministradorLanzaExcepcion() throws Exception {
+        Usuario admin = new Usuario();
+        admin.setId(1L);
+
+        Grupo grupo = new Grupo();
+        grupo.setId(10L);
+        grupo.setIdCreador(1L);
+        grupo.getMiembros().add(admin);
+
+        Gasto gastoExistente = crearGastoConId(100L, 80.0, false, admin, grupo);
+        Gasto gastoActualizado = new Gasto();
+        gastoActualizado.setConcepto("Intento sin permisos");
+
+        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gastoExistente));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+
+        Exception ex = assertThrows(Exception.class, () -> gastoService.editarGasto(100L, 99L, gastoActualizado));
+
+        assertEquals("Solo el administrador del grupo puede editar gastos", ex.getMessage());
+        verify(gastoRepository, never()).save(any(Gasto.class));
+    }
+
+    @Test
+    public void testEditarGastoNoEncontradoLanzaExcepcion() {
+        Gasto gastoActualizado = new Gasto();
+        gastoActualizado.setConcepto("No importa");
+
+        when(gastoRepository.findById(999L)).thenReturn(Optional.empty());
+
+        Exception ex = assertThrows(Exception.class, () -> gastoService.editarGasto(999L, 1L, gastoActualizado));
+
+        assertEquals("Gasto no encontrado", ex.getMessage());
+        verify(gastoRepository, never()).save(any(Gasto.class));
+    }
+
+    @Test
+    public void testEditarGastoConParticipanteFueraDelGrupoLanzaExcepcion() throws Exception {
+        Usuario admin = new Usuario();
+        admin.setId(1L);
+
+        Usuario miembro = new Usuario();
+        miembro.setId(2L);
+
+        Usuario intruso = new Usuario();
+        intruso.setId(99L);
+
+        Grupo grupo = new Grupo();
+        grupo.setId(10L);
+        grupo.setIdCreador(1L);
+        grupo.getMiembros().add(admin);
+        grupo.getMiembros().add(miembro);
+
+        Gasto gastoExistente = crearGastoConId(100L, 80.0, false, admin, grupo);
+
+        Gasto gastoActualizado = new Gasto();
+        gastoActualizado.setParticipantes(Arrays.asList(miembro, intruso));
+
+        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gastoExistente));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+
+        Exception ex = assertThrows(Exception.class, () -> gastoService.editarGasto(100L, 1L, gastoActualizado));
+
+        assertEquals("Todos los participantes deben pertenecer al grupo", ex.getMessage());
+        verify(gastoRepository, never()).save(any(Gasto.class));
+    }
 }
