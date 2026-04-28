@@ -2,6 +2,7 @@ package com.mycompany.app.service;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,12 +17,14 @@ import com.mycompany.app.entity.Grupo;
 import com.mycompany.app.entity.Moneda;
 import com.mycompany.app.entity.Usuario;
 import com.mycompany.app.entity.Pago;
+import com.mycompany.app.dto.ResumenGrupoDTO;
 import com.mycompany.app.entity.CategoriaGasto;
 import com.mycompany.app.repository.GastoRepository;
 import com.mycompany.app.repository.GrupoRepository;
 import com.mycompany.app.repository.UsuarioRepository;
 import com.mycompany.app.repository.PagoRepository;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -901,5 +904,148 @@ public class GastoServiceTest {
 
         assertEquals("Todos los participantes deben pertenecer al grupo", ex.getMessage());
         verify(gastoRepository, never()).save(any(Gasto.class));
+    }
+
+    // Faltaban validaciones de nulos iniciales
+    @Test
+    public void testCrearGastoAtributosNulosLanzaExcepcion() {
+        Gasto gastoMontoNull = new Gasto();
+        Exception ex1 = assertThrows(Exception.class, () -> gastoService.crear(gastoMontoNull));
+        assertEquals("El monto debe ser mayor que 0", ex1.getMessage());
+
+        Gasto gastoGrupoNull = new Gasto();
+        gastoGrupoNull.setMonto(100.0);
+        Exception ex2 = assertThrows(Exception.class, () -> gastoService.crear(gastoGrupoNull));
+        assertEquals("El grupo es obligatorio", ex2.getMessage());
+
+        Gasto gastoPagadorNull = new Gasto();
+        gastoPagadorNull.setMonto(100.0);
+        Grupo grupo = new Grupo(); grupo.setId(1L);
+        gastoPagadorNull.setGrupo(grupo);
+        Exception ex3 = assertThrows(Exception.class, () -> gastoService.crear(gastoPagadorNull));
+        assertEquals("El pagador es obligatorio", ex3.getMessage());
+    }
+
+    // Faltaba el caso donde no se encuentra en BD
+    @Test
+    public void testCrearGastoGrupoOPagadorNoEncontrado() {
+        Gasto gasto = new Gasto();
+        gasto.setMonto(100.0);
+        Grupo grupo = new Grupo(); grupo.setId(1L);
+        Usuario pagador = new Usuario(); pagador.setId(1L);
+        gasto.setGrupo(grupo);
+        gasto.setPagador(pagador);
+
+        when(grupoRepository.findById(1L)).thenReturn(Optional.empty());
+        Exception ex = assertThrows(Exception.class, () -> gastoService.crear(gasto));
+        assertEquals("Grupo no encontrado", ex.getMessage());
+    }
+
+    // Cobertura de la rama: Categoria Null y Reparto Especifico
+    @Test
+    public void testCrearGastoCategoriaNulaYRepartoEspecifico() throws Exception {
+        Usuario pagador = new Usuario(); pagador.setId(1L);
+        Usuario participante = new Usuario(); participante.setId(2L);
+        
+        Grupo grupo = new Grupo(); grupo.setId(10L); grupo.setMoneda(Moneda.EURO);
+        grupo.getMiembros().addAll(Arrays.asList(pagador, participante));
+
+        Gasto gasto = new Gasto();
+        gasto.setMonto(100.0);
+        gasto.setMoneda(Moneda.EURO);
+        gasto.setGrupo(grupo);
+        gasto.setPagador(pagador);
+        gasto.setCategoria(null); // Provocamos la rama de CategoriaGasto.OTROS
+        gasto.setRepartoGeneral(false); // Reparto específico
+        gasto.setParticipantes(Arrays.asList(participante));
+
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(pagador));
+        when(usuarioRepository.findAllById(any())).thenReturn(Arrays.asList(participante));
+        when(gastoRepository.save(any(Gasto.class))).thenAnswer(i -> i.getArgument(0));
+
+        Gasto resultado = gastoService.crear(gasto);
+
+        assertEquals(CategoriaGasto.OTROS, resultado.getCategoria());
+        assertFalse(resultado.isRepartoGeneral());
+        assertEquals(1, resultado.getParticipantes().size());
+    }
+    @Test
+    public void testObtenerPorIdExito() throws Exception {
+        Gasto gasto = new Gasto();
+        when(gastoRepository.findById(1L)).thenReturn(Optional.of(gasto));
+        Gasto resultado = gastoService.obtenerPorId(1L);
+        assertNotNull(resultado);
+    }
+
+    @Test
+    public void testObtenerPorIdNoEncontradoLanzaExcepcion() {
+        when(gastoRepository.findById(1L)).thenReturn(Optional.empty());
+        Exception ex = assertThrows(Exception.class, () -> gastoService.obtenerPorId(1L));
+        assertEquals("Gasto no encontrado", ex.getMessage());
+    }
+    @Test
+    public void testObtenerResumenGrupoIgnoraGastosInvalidos() throws Exception {
+        Usuario u1 = new Usuario(); u1.setId(1L); u1.setUsername("A");
+        Grupo grupo = new Grupo(); grupo.setId(10L); grupo.getMiembros().add(u1);
+
+        // 1. Monto null (Ignorado por el continue)
+        Gasto gastoInvalido1 = new Gasto(); 
+        gastoInvalido1.setMonto(null);
+        
+        // 2. Pagado (Ignorado por el continue en balances, pero SÍ suma al total del grupo)
+        Gasto gastoInvalido2 = new Gasto(); 
+        gastoInvalido2.setMonto(10.0); 
+        gastoInvalido2.setPagado(true);
+        
+        // 3. Pagador null (Ignorado por el continue en balances, pero SÍ suma al total del grupo)
+        Gasto gastoInvalido3 = new Gasto(); 
+        gastoInvalido3.setMonto(10.0); 
+        gastoInvalido3.setPagador(null);
+
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoRepository.findByGrupoId(10L)).thenReturn(Arrays.asList(gastoInvalido1, gastoInvalido2, gastoInvalido3));
+        when(pagoRepository.findByGrupoId(10L)).thenReturn(new ArrayList<>()); // Prevenimos posibles nulos
+
+        ResumenGrupoDTO resumen = gastoService.obtenerResumenGrupo(10L);
+
+        // El total gastado debe ser 20.0 (suma del gasto 2 y 3 que tienen monto válido)
+        assertEquals(20.0, resumen.getTotalGastado()); 
+
+        // Pero el balance de los usuarios debe ser 0.0, confirmando que el "continue" funcionó
+        assertEquals(1, resumen.getBalances().size());
+        assertEquals(0.0, resumen.getBalances().get(0).getBalance(), "El balance no debió alterarse");
+    }
+    @Test
+    public void testObtenerResumenPorGrupoUsuarioNoEncontrado() {
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.empty());
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> gastoService.obtenerResumenPorGrupoParaUsuario(1L));
+        assertEquals("Usuario no encontrado", ex.getMessage());
+    }
+    @Test
+    public void testEditarGastoIgnoraValoresNulosONegativos() throws Exception {
+        Usuario admin = new Usuario(); admin.setId(1L);
+        Grupo grupo = new Grupo(); grupo.setId(10L); grupo.setIdCreador(1L); grupo.getMiembros().add(admin);
+        
+        Gasto gastoExistente = crearGastoConId(100L, 80.0, false, admin, grupo);
+        gastoExistente.setConcepto("Original");
+        gastoExistente.setCategoria(CategoriaGasto.OTROS);
+        
+        // Mandamos todo nulo o inválido
+        Gasto gastoActualizado = new Gasto();
+        gastoActualizado.setConcepto(null);
+        gastoActualizado.setMonto(-50.0); // No debería actualizarse
+        gastoActualizado.setCategoria(null);
+
+        when(gastoRepository.findById(100L)).thenReturn(Optional.of(gastoExistente));
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoRepository.save(any(Gasto.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Gasto resultado = gastoService.editarGasto(100L, 1L, gastoActualizado);
+
+        // Verifica que mantuvo los valores originales
+        assertEquals("Original", resultado.getConcepto());
+        assertEquals(80.0, resultado.getMonto());
+        assertEquals(CategoriaGasto.OTROS, resultado.getCategoria());
     }
 }
