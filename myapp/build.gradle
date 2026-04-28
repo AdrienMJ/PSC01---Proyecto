@@ -21,6 +21,11 @@ java {
     }
 }
 
+// Necesario para Spring Boot 3 / Spring 6: preserva los nombres de parámetros en el bytecode
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += ['-parameters']
+}
+
 dependencies {
     // Web para hacer los controladores (API REST)
     implementation 'org.springframework.boot:spring-boot-starter-web'

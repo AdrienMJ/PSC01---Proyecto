@@ -440,6 +440,7 @@ public class GastoService {
     /**
      * Eliminar un gasto - solo el administrador del grupo puede hacerlo
      */
+    @Transactional
     public void eliminarGasto(Long gastoId, Long usuarioId) throws Exception {
         // Cargar el gasto
         Gasto gasto = gastoRepository.findById(gastoId)
@@ -455,7 +456,8 @@ public class GastoService {
             throw new Exception("Solo el administrador del grupo puede eliminar gastos");
         }
 
-        // Eliminar el gasto
+        // Limpiar participantes primero para que Hibernate borre la tabla de unión antes que el gasto
+        gasto.getParticipantes().clear();
         gastoRepository.delete(gasto);
     }
 

@@ -62,7 +62,7 @@ public class GastoController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> actualizarMonto(@PathVariable Long id, @RequestBody Gasto gasto) {
+    public ResponseEntity<?> actualizarMonto(@PathVariable("id") Long id, @RequestBody Gasto gasto) {
         try {
             Gasto existente = gastoService.obtenerPorId(id);
             Double nuevoMonto = gasto.getMonto();
@@ -78,7 +78,7 @@ public class GastoController {
     }
 
     @PutMapping("/{id}/pagado/{usuarioId}")
-    public ResponseEntity<?> marcarComoPagado(@PathVariable Long id, @PathVariable Long usuarioId) {
+    public ResponseEntity<?> marcarComoPagado(@PathVariable("id") Long id, @PathVariable("usuarioId") Long usuarioId) {
         try {
             Gasto actualizado = gastoService.marcarComoPagado(id, usuarioId);
             return ResponseEntity.ok(actualizado);
@@ -147,16 +147,19 @@ public class GastoController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(
-            @PathVariable Long id,
-            @RequestParam Long usuarioId) {
+            @PathVariable("id") Long id,
+            @RequestParam("usuarioId") Long usuarioId) {
         try {
-            System.out.println("DEBUG: Eliminando gasto " + id + " por usuario " + usuarioId);
             gastoService.eliminarGasto(id, usuarioId);
             return ResponseEntity.ok("{\"mensaje\": \"Gasto eliminado correctamente\"}");
         } catch (Exception e) {
             System.err.println("ERROR eliminarGasto: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        } catch (Throwable e) {
+            System.err.println("ERROR GRAVE eliminarGasto: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error interno: " + e.getMessage());
         }
     }
 
@@ -165,8 +168,8 @@ public class GastoController {
      */
     @PutMapping("/{id}/editar")
     public ResponseEntity<?> editar(
-            @PathVariable Long id,
-            @RequestParam Long usuarioId,
+            @PathVariable("id") Long id,
+            @RequestParam("usuarioId") Long usuarioId,
             @RequestBody Gasto gasto) {
         try {
             System.out.println("DEBUG: Editando gasto " + id + " por usuario " + usuarioId);
