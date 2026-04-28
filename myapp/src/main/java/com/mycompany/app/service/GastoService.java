@@ -381,9 +381,18 @@ public class GastoService {
         String url = "https://open.er-api.com/v6/latest/" + isoBase;
         RestTemplate restTemplate = new RestTemplate();
         
-        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+        Map<?, ?> response = restTemplate.getForObject(url, Map.class);
         if (response != null && response.containsKey("rates")) {
-            return (Map<String, Object>) response.get("rates");
+            Object ratesObj = response.get("rates");
+            if (ratesObj instanceof Map<?, ?> rates) {
+                Map<String, Object> result = new HashMap<>();
+                for (Map.Entry<?, ?> entry : rates.entrySet()) {
+                    if (entry.getKey() instanceof String key) {
+                        result.put(key, entry.getValue());
+                    }
+                }
+                return result;
+            }
         }
         } catch (Exception e) {
             System.err.println("Error obteniendo tasas: " + e.getMessage());
@@ -392,7 +401,7 @@ public class GastoService {
     }
 
     public List<Map<String, Object>> obtenerResumenPorGrupoParaUsuario(Long userId) {
-        Usuario usuario = usuarioRepository.findById(userId)
+        usuarioRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         List<Grupo> grupos = grupoRepository.findAll().stream()

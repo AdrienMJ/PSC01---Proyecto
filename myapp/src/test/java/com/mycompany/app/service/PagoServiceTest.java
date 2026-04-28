@@ -11,7 +11,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import com.mycompany.app.entity.Grupo;
-import com.mycompany.app.entity.Moneda;
 import com.mycompany.app.entity.Pago;
 import com.mycompany.app.entity.Usuario;
 import com.mycompany.app.repository.GrupoRepository;
