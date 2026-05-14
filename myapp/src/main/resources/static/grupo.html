@@ -525,6 +525,21 @@
             <p class="hint">Transferencias mínimas recomendadas para equilibrar deudas.</p>
             <ul id="listaSoluciones" class="sol-list"></ul>
         </div>
+
+        <div class="seccion" style="background: white;">
+            <h3>Estadísticas visuales</h3>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 250px;">
+                    <h4 style="text-align: center; font-size: 0.9em;">Gastos por Categoría</h4>
+                    <canvas id="chartCategorias"></canvas>
+                </div>
+                <div style="flex: 1; min-width: 250px;">
+                    <h4 style="text-align: center; font-size: 0.9em;">Aportes por Miembro</h4>
+                    <canvas id="chartUsuarios"></canvas>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <div id="tabMiembros" class="panel">
@@ -756,6 +771,8 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
     const CATEGORIAS = [
         { value: 'COMIDA', label: 'Comida' },
@@ -804,6 +821,7 @@
 
         cargarGastos();
         cargarResumen();
+        cargarGraficas(grupoId);
     };
 
     function volver() {
@@ -1713,6 +1731,38 @@
             <div>${estadoTexto}</div>
             <div class="row" style="margin-top: 8px;">${actionButton}${botonesAdmin}</div>
         `;
+    }
+
+    /* global Chart */
+    function cargarGraficas(grupoId) {
+        // Categorías
+        fetch(`/api/gastos/grupo/${grupoId}/grafica/categoria`)
+            .then(res => res.json())
+            .then(data => {
+                const ctx = document.getElementById('chartCategorias').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(data),
+                        datasets: [{ data: Object.values(data), backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'] }]
+                    }
+                });
+            });
+
+        // Usuarios
+        fetch(`/api/gastos/grupo/${grupoId}/grafica/usuario`)
+            .then(res => res.json())
+            .then(data => {
+                const ctx = document.getElementById('chartUsuarios').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(data),
+                        datasets: [{ label: 'Total Pagado', data: Object.values(data), backgroundColor: '#1f7ae0' }]
+                    },
+                    options: { scales: { y: { beginAtZero: true } } }
+                });
+            });
     }
 
 </script>

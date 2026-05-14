@@ -529,4 +529,27 @@ public class GastoService {
 
         return gastoRepository.save(gasto);
     }
+
+    // Obtener totales agrupados por categoría para la gráfica de tarta
+    public Map<String, Double> obtenerTotalesPorCategoria(Long grupoId) {
+        List<Gasto> gastos = gastoRepository.findByGrupoId(grupoId);
+        return gastos.stream()
+                .filter(g -> !g.isPagado() && g.getMonto() != null && g.getMonto() > 0) // [cite: 4754]
+                .collect(Collectors.groupingBy(
+                        g -> g.getCategoria() != null ? g.getCategoria().name() : "OTROS",
+                        Collectors.summingDouble(Gasto::getMonto)
+                ));
+    }
+
+    // Obtener aportes totales por usuario para la gráfica de barras
+    public Map<String, Double> obtenerAportesPorUsuario(Long grupoId) {
+        List<Gasto> gastos = gastoRepository.findByGrupoId(grupoId);
+        return gastos.stream()
+                // Quitamos el filtro de !isPagado() para ver el histórico total
+                .filter(g -> g.getPagador() != null && g.getMonto() != null) 
+                .collect(Collectors.groupingBy(
+                        g -> g.getPagador().getUsername(),
+                        Collectors.summingDouble(Gasto::getMonto)
+                ));
+    }
 }

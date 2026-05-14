@@ -94,7 +94,7 @@ public class GastoController {
     } catch (Exception e) {
         return ResponseEntity.badRequest().body(e.getMessage());
     }
-}
+    }
 
     @GetMapping("/categorias")
     public ResponseEntity<?> listarCategorias() {
@@ -179,6 +179,16 @@ public class GastoController {
             e.printStackTrace();
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/grupo/{id}/grafica/categoria")
+    public ResponseEntity<Map<String, Double>> getGraficaCategoria(@PathVariable Long id) {
+        return ResponseEntity.ok(gastoService.obtenerTotalesPorCategoria(id));
+    }
+
+    @GetMapping("/grupo/{id}/grafica/usuario")
+    public ResponseEntity<Map<String, Double>> getGraficaUsuario(@PathVariable Long id) {
+        return ResponseEntity.ok(gastoService.obtenerAportesPorUsuario(id));
     }
 
 }
