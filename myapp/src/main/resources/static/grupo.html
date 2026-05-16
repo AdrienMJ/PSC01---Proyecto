@@ -800,6 +800,8 @@
     let idCreadorGrupo = null;
     let gastoIdSeleccionado = null;
     let miembroAExpulsar = null;
+    let chartCategoriasInstance = null;
+    let chartUsuariosInstance = null;
 
     if (!grupoId) {
         window.location.href = 'dashboard.html';
@@ -1140,6 +1142,7 @@
                 renderEmotePicker();
                 await cargarGastos();
                 await cargarResumen();
+                cargarGraficas(grupoId);
             } else {
                 const error = await resp.text();
                 msg.textContent = 'Error al crear gasto: ' + error;
@@ -1280,6 +1283,7 @@
         // Recargar la lista de gastos para actualizar la vista
         await cargarGastos();
         await cargarResumen();
+        cargarGraficas(grupoId);
     }
 
     async function cargarResumen() {
@@ -1584,6 +1588,7 @@
                 }
                 gastoIdSeleccionado = null;
                 await cargarResumen(); // Solo recargar el resumen, no todos los gastos
+                cargarGraficas(grupoId);
             } else {
                 const error = await resp.text();
                 alert('❌ Error: ' + error);
@@ -1673,6 +1678,7 @@
                 actualizarGastoEnDOM(gastoIdSeleccionado, gastoActualizadoData);
                 gastoIdSeleccionado = null;
                 await cargarResumen(); // Solo recargar el resumen
+                cargarGraficas(grupoId);
             } else {
                 const error = await resp.text();
                 alert('❌ Error: ' + error);
@@ -1735,30 +1741,54 @@
 
     /* global Chart */
     function cargarGraficas(grupoId) {
-        // Categorías
+        // 1. Gráfica de Categorías
         fetch(`/api/gastos/grupo/${grupoId}/grafica/categoria`)
             .then(res => res.json())
             .then(data => {
                 const ctx = document.getElementById('chartCategorias').getContext('2d');
-                new Chart(ctx, {
+                
+                // Si ya existe una gráfica previa, la destruimos antes de crear la nueva
+                if (chartCategoriasInstance) {
+                    chartCategoriasInstance.destroy();
+                }
+                
+                chartCategoriasInstance = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
                         labels: Object.keys(data),
-                        datasets: [{ data: Object.values(data), backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'] }]
+                        datasets: [{ 
+                            data: Object.values(data), 
+                            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'] 
+                        }]
                     }
                 });
             });
 
-        // Usuarios
+        // 2. Gráfica de Usuarios (Balance Neto)
         fetch(`/api/gastos/grupo/${grupoId}/grafica/usuario`)
             .then(res => res.json())
             .then(data => {
+                const nombres = Object.keys(data);
+                const montos = Object.values(data);
+                const coloresBarras = montos.map(valor => valor >= 0 ? '#1f9f58' : '#d73a49');
+
                 const ctx = document.getElementById('chartUsuarios').getContext('2d');
-                new Chart(ctx, {
+                
+                // Si ya existe una gráfica previa, la destruimos antes de crear la nueva
+                if (chartUsuariosInstance) {
+                    chartUsuariosInstance.destroy();
+                }
+                
+                chartUsuariosInstance = new Chart(ctx, {
                     type: 'bar',
                     data: {
-                        labels: Object.keys(data),
-                        datasets: [{ label: 'Total Pagado', data: Object.values(data), backgroundColor: '#1f7ae0' }]
+                        labels: nombres,
+                        datasets: [{ 
+                            label: 'Balance Neto (€)', 
+                            data: montos, 
+                            backgroundColor: coloresBarras,
+                            borderRadius: 6 
+                        }]
                     },
                     options: { scales: { y: { beginAtZero: true } } }
                 });

@@ -181,14 +181,14 @@ public class GastoController {
         }
     }
 
-    @GetMapping("/grupo/{id}/grafica/categoria")
-    public ResponseEntity<Map<String, Double>> getGraficaCategoria(@PathVariable Long id) {
-        return ResponseEntity.ok(gastoService.obtenerTotalesPorCategoria(id));
+    @GetMapping("/grupo/{grupoId}/grafica/categoria")
+    public ResponseEntity<Map<String, Double>> getGraficaCategoria(@PathVariable("grupoId") Long grupoId) {
+        return ResponseEntity.ok(gastoService.obtenerTotalesPorCategoria(grupoId));
     }
 
-    @GetMapping("/grupo/{id}/grafica/usuario")
-    public ResponseEntity<Map<String, Double>> getGraficaUsuario(@PathVariable Long id) {
-        return ResponseEntity.ok(gastoService.obtenerAportesPorUsuario(id));
+    @GetMapping("/grupo/{grupoId}/grafica/usuario")
+    public ResponseEntity<Map<String, Double>> getGraficaUsuario(@PathVariable("grupoId") Long grupoId) {
+        return ResponseEntity.ok(gastoService.obtenerAportesPorUsuario(grupoId));
     }
 
 }

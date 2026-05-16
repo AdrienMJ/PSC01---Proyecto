@@ -530,26 +530,32 @@ public class GastoService {
         return gastoRepository.save(gasto);
     }
 
-    // Obtener totales agrupados por categoría para la gráfica de tarta
+    // Obtener totales agrupados por categoría (etiquetas: COMIDA, OCIO...)
     public Map<String, Double> obtenerTotalesPorCategoria(Long grupoId) {
-        List<Gasto> gastos = gastoRepository.findByGrupoId(grupoId);
+        List<Gasto> gastos = gastoRepository.findByGrupoId(grupoId); // Usa tu repositorio existente
         return gastos.stream()
-                .filter(g -> !g.isPagado() && g.getMonto() != null && g.getMonto() > 0) // [cite: 4754]
+                .filter(g -> g.getMonto() != null && g.getMonto() > 0) // Quitamos el filtro !isPagado() para leer todo
                 .collect(Collectors.groupingBy(
                         g -> g.getCategoria() != null ? g.getCategoria().name() : "OTROS",
                         Collectors.summingDouble(Gasto::getMonto)
                 ));
     }
 
-    // Obtener aportes totales por usuario para la gráfica de barras
+    // Obtener el balance neto real por usuario (barras positivas y negativas)
     public Map<String, Double> obtenerAportesPorUsuario(Long grupoId) {
-        List<Gasto> gastos = gastoRepository.findByGrupoId(grupoId);
-        return gastos.stream()
-                // Quitamos el filtro de !isPagado() para ver el histórico total
-                .filter(g -> g.getPagador() != null && g.getMonto() != null) 
-                .collect(Collectors.groupingBy(
-                        g -> g.getPagador().getUsername(),
-                        Collectors.summingDouble(Gasto::getMonto)
-                ));
+        try {
+            com.mycompany.app.dto.ResumenGrupoDTO resumen = obtenerResumenGrupo(grupoId);
+            
+            return resumen.getBalances().stream()
+                    .collect(Collectors.toMap(
+                            com.mycompany.app.dto.BalancePersonaDTO::getUsername,
+                            com.mycompany.app.dto.BalancePersonaDTO::getBalance,
+                            (v1, v2) -> v1,
+                            LinkedHashMap::new // Mantiene el orden alfabético del resumen
+                    ));
+        } catch (Exception e) {
+            System.err.println("Error generando gráfica de usuarios: " + e.getMessage());
+            return new HashMap<>();
+        }
     }
 }
