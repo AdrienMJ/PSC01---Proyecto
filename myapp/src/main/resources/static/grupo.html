@@ -525,6 +525,21 @@
             <p class="hint">Transferencias mínimas recomendadas para equilibrar deudas.</p>
             <ul id="listaSoluciones" class="sol-list"></ul>
         </div>
+
+        <div class="seccion" style="background: white;">
+            <h3>Estadísticas visuales</h3>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 250px;">
+                    <h4 style="text-align: center; font-size: 0.9em;">Gastos por Categoría</h4>
+                    <canvas id="chartCategorias"></canvas>
+                </div>
+                <div style="flex: 1; min-width: 250px;">
+                    <h4 style="text-align: center; font-size: 0.9em;">Aportes por Miembro</h4>
+                    <canvas id="chartUsuarios"></canvas>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <div id="tabMiembros" class="panel">
@@ -756,6 +771,8 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
     const CATEGORIAS = [
         { value: 'COMIDA', label: 'Comida' },
@@ -783,6 +800,8 @@
     let idCreadorGrupo = null;
     let gastoIdSeleccionado = null;
     let miembroAExpulsar = null;
+    let chartCategoriasInstance = null;
+    let chartUsuariosInstance = null;
 
     if (!grupoId) {
         window.location.href = 'dashboard.html';
@@ -804,6 +823,7 @@
 
         cargarGastos();
         cargarResumen();
+        cargarGraficas(grupoId);
     };
 
     function volver() {
@@ -1122,6 +1142,7 @@
                 renderEmotePicker();
                 await cargarGastos();
                 await cargarResumen();
+                cargarGraficas(grupoId);
             } else {
                 const error = await resp.text();
                 msg.textContent = 'Error al crear gasto: ' + error;
@@ -1262,6 +1283,7 @@
         // Recargar la lista de gastos para actualizar la vista
         await cargarGastos();
         await cargarResumen();
+        cargarGraficas(grupoId);
     }
 
     async function cargarResumen() {
@@ -1566,6 +1588,7 @@
                 }
                 gastoIdSeleccionado = null;
                 await cargarResumen(); // Solo recargar el resumen, no todos los gastos
+                cargarGraficas(grupoId);
             } else {
                 const error = await resp.text();
                 alert('❌ Error: ' + error);
@@ -1655,6 +1678,7 @@
                 actualizarGastoEnDOM(gastoIdSeleccionado, gastoActualizadoData);
                 gastoIdSeleccionado = null;
                 await cargarResumen(); // Solo recargar el resumen
+                cargarGraficas(grupoId);
             } else {
                 const error = await resp.text();
                 alert('❌ Error: ' + error);
@@ -1713,6 +1737,62 @@
             <div>${estadoTexto}</div>
             <div class="row" style="margin-top: 8px;">${actionButton}${botonesAdmin}</div>
         `;
+    }
+
+    /* global Chart */
+    function cargarGraficas(grupoId) {
+        // 1. Gráfica de Categorías
+        fetch(`/api/gastos/grupo/${grupoId}/grafica/categoria`)
+            .then(res => res.json())
+            .then(data => {
+                const ctx = document.getElementById('chartCategorias').getContext('2d');
+                
+                // Si ya existe una gráfica previa, la destruimos antes de crear la nueva
+                if (chartCategoriasInstance) {
+                    chartCategoriasInstance.destroy();
+                }
+                
+                chartCategoriasInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(data),
+                        datasets: [{ 
+                            data: Object.values(data), 
+                            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'] 
+                        }]
+                    }
+                });
+            });
+
+        // 2. Gráfica de Usuarios (Balance Neto)
+        fetch(`/api/gastos/grupo/${grupoId}/grafica/usuario`)
+            .then(res => res.json())
+            .then(data => {
+                const nombres = Object.keys(data);
+                const montos = Object.values(data);
+                const coloresBarras = montos.map(valor => valor >= 0 ? '#1f9f58' : '#d73a49');
+
+                const ctx = document.getElementById('chartUsuarios').getContext('2d');
+                
+                // Si ya existe una gráfica previa, la destruimos antes de crear la nueva
+                if (chartUsuariosInstance) {
+                    chartUsuariosInstance.destroy();
+                }
+                
+                chartUsuariosInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: nombres,
+                        datasets: [{ 
+                            label: 'Balance Neto (€)', 
+                            data: montos, 
+                            backgroundColor: coloresBarras,
+                            borderRadius: 6 
+                        }]
+                    },
+                    options: { scales: { y: { beginAtZero: true } } }
+                });
+            });
     }
 
 </script>
