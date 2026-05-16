@@ -616,4 +616,48 @@ public class GastoServiceTest {
             assertEquals(1.1, tasas.get("USD"));
         }
     }
+
+    @Test
+    public void testObtenerTotalesPorCategoria_Exito() {
+        Gasto g1 = new Gasto();
+        g1.setMonto(40.0);
+        g1.setCategoria(CategoriaGasto.COMIDA);
+        
+        Gasto g2 = new Gasto();
+        g2.setMonto(25.0);
+        g2.setCategoria(CategoriaGasto.OCIO);
+
+        Gasto g3 = new Gasto();
+        g3.setMonto(15.0);
+        g3.setCategoria(CategoriaGasto.COMIDA); // Misma categoría para verificar la suma
+
+        when(gastoRepository.findByGrupoId(10L)).thenReturn(List.of(g1, g2, g3));
+
+        Map<String, Double> resultado = gastoService.obtenerTotalesPorCategoria(10L);
+
+        assertNotNull(resultado);
+        assertEquals(2, resultado.size());
+        assertEquals(55.0, resultado.get("COMIDA")); // 40.0 + 15.0
+        assertEquals(25.0, resultado.get("OCIO"));
+    }
+
+    @Test
+    public void testObtenerAportesPorUsuario_Exito() throws Exception {
+        // Configuramos un escenario donde obtenerResumenGrupo devuelva balances calculados
+        Gasto g1 = new Gasto();
+        g1.setMonto(60.0);
+        g1.setPagador(user1);
+        g1.setRepartoGeneral(true);
+
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoRepository.findByGrupoId(10L)).thenReturn(List.of(g1));
+        when(pagoRepository.findByGrupoId(10L)).thenReturn(new ArrayList<>());
+
+        Map<String, Double> resultado = gastoService.obtenerAportesPorUsuario(10L);
+
+        assertNotNull(resultado);
+        assertEquals(2, resultado.size());
+        assertEquals(30.0, resultado.get("Adrien"));  // Balance positivo: +30
+        assertEquals(-30.0, resultado.get("Prueba")); // Balance deudor: -30
+    }
 }

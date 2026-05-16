@@ -373,4 +373,32 @@ public class GastoControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Error: Fallo al editar"));
     }
+
+    @Test
+    void testGetGraficaCategoriaExito() throws Exception {
+        Map<String, Double> mockData = new HashMap<>();
+        mockData.put("COMIDA", 120.5);
+        mockData.put("OCIO", 45.0);
+
+        when(gastoService.obtenerTotalesPorCategoria(1L)).thenReturn(mockData);
+
+        mockMvc.perform(get("/api/gastos/grupo/1/grafica/categoria"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.COMIDA").value(120.5))
+                .andExpect(jsonPath("$.OCIO").value(45.0));
+    }
+
+    @Test
+    void testGetGraficaUsuarioExito() throws Exception {
+        Map<String, Double> mockData = new HashMap<>();
+        mockData.put("Adrien", 35.0);
+        mockData.put("Prueba", -35.0);
+
+        when(gastoService.obtenerAportesPorUsuario(1L)).thenReturn(mockData);
+
+        mockMvc.perform(get("/api/gastos/grupo/1/grafica/usuario"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.Adrien").value(35.0))
+                .andExpect(jsonPath("$.Prueba").value(-35.0));
+    }
 }
