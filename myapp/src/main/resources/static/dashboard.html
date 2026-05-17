@@ -426,6 +426,25 @@
             white-space: nowrap;
         }
 
+        .moneda-pref-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--accent-soft);
+            border: 1px solid #c6ddf7;
+            border-radius: 999px;
+            padding: 5px 12px;
+            font-size: 0.88em;
+            font-weight: 600;
+            color: var(--accent);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .moneda-pref-badge:hover {
+            background: #d6eaff;
+        }
+
         .form-grupo {
             margin-top: 20px;
             padding: 15px;
@@ -582,6 +601,9 @@
         <div class="header">
             <h2>Hola, <span id="userSpan"></span></h2>
             <div class="header-actions">
+                <span class="moneda-pref-badge" onclick="abrirModalMoneda()" title="Cambiar moneda predeterminada">
+                    Moneda: <strong id="monedaPrefSpan">...</strong>
+                </span>
                 <button class="btn-delete-account" onclick="abrirModalEliminarCuenta()">Eliminar cuenta</button>
                 <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
             </div>
@@ -613,6 +635,18 @@
         </div>
     </div>
 
+    <div id="monedaModal" class="modal-overlay" onclick="cerrarModalMoneda(event)">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <h3>Moneda predeterminada</h3>
+            <p>Se preseleccionará al crear un nuevo grupo.</p>
+            <select id="monedaModalSelect" style="width:100%; margin-bottom: 14px;"></select>
+            <div class="modal-actions">
+                <button class="btn-modal-cancel" onclick="cerrarModalMoneda()">Cancelar</button>
+                <button class="btn-accent" onclick="guardarMonedaPredeterminada()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="deleteAccountModal" class="modal-overlay" onclick="cerrarModalEliminarCuenta(event)">
         <div class="modal-card" onclick="event.stopPropagation()">
             <h3>Eliminar cuenta</h3>
@@ -628,6 +662,38 @@
         const userId = localStorage.getItem('userId');
         const username = localStorage.getItem('username');
 
+        // --- Conversión a moneda predeterminada ---
+        const ENUM_A_ISO = {
+            EURO: 'EUR', DOLAR: 'USD', LIBRA: 'GBP', YEN: 'JPY',
+            PESO: 'MXN', FRANCO: 'CHF', CORONA: 'SEK', REAL: 'BRL',
+            RUPIA: 'INR', LIRA: 'TRY'
+        };
+        const ISO_SIMBOLO = {
+            EUR: '€', USD: '$', GBP: '£', JPY: '¥', MXN: '$MX',
+            CHF: 'CHF', SEK: 'kr', BRL: 'R$', INR: '₹', TRY: '₺'
+        };
+        let tasasDash = null;
+
+        async function cargarTasasDash(monedaEnum) {
+            try {
+                const resp = await fetch(`/api/gastos/tasas/${monedaEnum}`);
+                tasasDash = resp.ok ? await resp.json() : null;
+            } catch (e) { tasasDash = null; }
+        }
+
+        function convertirDash(amount, fromEnum, monedaPrefEnum) {
+            if (!tasasDash || !fromEnum || fromEnum === monedaPrefEnum) return amount;
+            const iso = ENUM_A_ISO[fromEnum];
+            if (!iso) return amount;
+            const tasa = tasasDash[iso];
+            if (!tasa) return amount;
+            return amount / tasa;
+        }
+
+        function simDash(monedaPrefEnum) {
+            return ISO_SIMBOLO[ENUM_A_ISO[monedaPrefEnum] || 'EUR'] || monedaPrefEnum;
+        }
+
         // Verificación de sesión
         if (!userId) {
             window.location.href = 'index.html';
@@ -636,10 +702,11 @@
         }
 
         // Ejecutar al cargar la página
-        window.onload = () => {
-            cargarMonedas();
+        window.onload = async () => {
+            await cargarMonedas();
             cargarGrupos();
             cargarResumenGastos();
+            cargarMonedaPredeterminada();
         };
 
         // 1. Cargar monedas desde el Enum de Java
@@ -647,17 +714,71 @@
             try {
                 const resp = await fetch('/api/grupos/monedas');
                 const monedas = await resp.json();
-                const select = document.getElementById('monedaGrupo');
-                
-                select.innerHTML = ""; // Limpiar el "Cargando..."
+                const selectGrupo = document.getElementById('monedaGrupo');
+                const selectModal = document.getElementById('monedaModalSelect');
+
+                selectGrupo.innerHTML = "";
+                selectModal.innerHTML = "";
                 monedas.forEach(m => {
                     const opt = document.createElement('option');
                     opt.value = m;
                     opt.textContent = m;
-                    select.appendChild(opt);
+                    selectGrupo.appendChild(opt);
+                    selectModal.appendChild(opt.cloneNode(true));
                 });
             } catch (err) {
                 console.error("Error cargando monedas:", err);
+            }
+        }
+
+        async function cargarMonedaPredeterminada() {
+            try {
+                const resp = await fetch(`/api/usuarios`);
+                const usuarios = await resp.json();
+                const usuario = usuarios.find(u => String(u.id) === String(userId));
+                if (usuario && usuario.monedaPredeterminada) {
+                    aplicarMonedaPredeterminada(usuario.monedaPredeterminada);
+                    await cargarTasasDash(usuario.monedaPredeterminada);
+                    cargarResumenGastos();
+                }
+            } catch (err) {
+                console.error("Error cargando moneda predeterminada:", err);
+            }
+        }
+
+        function aplicarMonedaPredeterminada(moneda) {
+            localStorage.setItem('monedaPredeterminada', moneda);
+            document.getElementById('monedaPrefSpan').textContent = moneda;
+            const select = document.getElementById('monedaGrupo');
+            if (select) select.value = moneda;
+        }
+
+        function abrirModalMoneda() {
+            const monedaActual = localStorage.getItem('monedaPredeterminada');
+            const select = document.getElementById('monedaModalSelect');
+            if (monedaActual) select.value = monedaActual;
+            document.getElementById('monedaModal').classList.add('open');
+        }
+
+        function cerrarModalMoneda(event) {
+            if (!event || event.target.id === 'monedaModal') {
+                document.getElementById('monedaModal').classList.remove('open');
+            }
+        }
+
+        async function guardarMonedaPredeterminada() {
+            const moneda = document.getElementById('monedaModalSelect').value;
+            try {
+                const resp = await fetch(`/api/usuarios/${userId}/moneda-predeterminada`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ moneda })
+                });
+                if (!resp.ok) throw new Error(await resp.text());
+                aplicarMonedaPredeterminada(moneda);
+                cerrarModalMoneda();
+            } catch (err) {
+                alert('Error al guardar la moneda: ' + err.message);
             }
         }
 
@@ -838,7 +959,11 @@
                     return;
                 }
 
+                const monedaPrefActual = localStorage.getItem('monedaPredeterminada') || 'EURO';
                 datos.forEach(d => {
+                    const parte = convertirDash(d.totalParte, d.moneda, monedaPrefActual);
+                    const pagado = convertirDash(d.totalPagado, d.moneda, monedaPrefActual);
+                    const sym = simDash(monedaPrefActual);
                     cont.innerHTML += `
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; margin-bottom: 8px; background: white; border: 1px solid var(--border); border-radius: 10px;">
                             <div>
@@ -846,8 +971,8 @@
                                 <span style="color: var(--muted); font-size: 0.85em; margin-left: 8px;">${d.numGastos} gastos</span>
                             </div>
                             <div style="text-align: right;">
-                                <div style="font-weight: 700; color: var(--accent);">Tu parte: ${d.totalParte.toFixed(2)}€</div>
-                                <div style="font-size: 0.85em; color: var(--muted);">Pagado: ${d.totalPagado.toFixed(2)}€</div>
+                                <div style="font-weight: 700; color: var(--accent);">Tu parte: ${parte.toFixed(2)}${sym}</div>
+                                <div style="font-size: 0.85em; color: var(--muted);">Pagado: ${pagado.toFixed(2)}${sym}</div>
                             </div>
                         </div>
                     `;

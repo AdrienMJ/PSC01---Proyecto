@@ -14,11 +14,14 @@ public class Usuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     private String username;
     private String email;
     @JsonProperty(access = Access.WRITE_ONLY)
     private String password;
+
+    @Enumerated(EnumType.STRING)
+    private Moneda monedaPredeterminada = Moneda.EURO;
 
     @ManyToMany(mappedBy = "miembros")
     @JsonIgnore //Esto es importante para que el JSON no pese infinito
@@ -41,5 +44,7 @@ public class Usuario {
     public void setEmail(String email) { this.email = email; }
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+    public Moneda getMonedaPredeterminada() { return monedaPredeterminada; }
+    public void setMonedaPredeterminada(Moneda monedaPredeterminada) { this.monedaPredeterminada = monedaPredeterminada; }
     public List<Grupo> getGrupos() { return grupos; } // <--- CRUCIAL para la relación
 }

@@ -1,5 +1,6 @@
 package com.mycompany.app.service;
 
+import com.mycompany.app.entity.Moneda;
 import com.mycompany.app.entity.Usuario;
 import com.mycompany.app.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -105,6 +106,13 @@ public class UsuarioService {
         }
 
         usuarioRepository.deleteById(idUsuario);
+    }
+
+    public Usuario actualizarMonedaPredeterminada(Long id, Moneda moneda) throws Exception {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new Exception("Usuario no encontrado"));
+        usuario.setMonedaPredeterminada(moneda);
+        return usuarioRepository.save(usuario);
     }
 
     private void borrarParticipantesPorGastos(List<Long> idsGasto) {

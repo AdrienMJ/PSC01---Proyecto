@@ -1,5 +1,6 @@
 package com.mycompany.app.controller;
 
+import com.mycompany.app.entity.Moneda;
 import com.mycompany.app.entity.Usuario;
 import com.mycompany.app.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +45,21 @@ public class UsuarioController {
         } catch (Exception e) {
             // 401 Unauthorized (No autorizado)
             return ResponseEntity.status(401).body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{id}/moneda-predeterminada")
+    public ResponseEntity<?> actualizarMonedaPredeterminada(
+            @PathVariable("id") Long id,
+            @RequestBody java.util.Map<String, String> body) {
+        try {
+            Moneda moneda = Moneda.valueOf(body.get("moneda"));
+            Usuario usuario = usuarioService.actualizarMonedaPredeterminada(id, moneda);
+            return ResponseEntity.ok(usuario);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Moneda no válida");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
 

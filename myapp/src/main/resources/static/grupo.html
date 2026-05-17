@@ -832,17 +832,72 @@
     let chartCategoriasInstance = null;
     let chartUsuariosInstance = null;
 
+    // --- Conversión a moneda predeterminada ---
+    const ENUM_A_ISO = {
+        EURO: 'EUR', DOLAR: 'USD', LIBRA: 'GBP', YEN: 'JPY',
+        PESO: 'MXN', FRANCO: 'CHF', CORONA: 'SEK', REAL: 'BRL',
+        RUPIA: 'INR', LIRA: 'TRY'
+    };
+    const ISO_SIMBOLO = {
+        EUR: '€', USD: '$', GBP: '£', JPY: '¥', MXN: '$MX',
+        CHF: 'CHF', SEK: 'kr', BRL: 'R$', INR: '₹', TRY: '₺'
+    };
+    let monedaPref = localStorage.getItem('monedaPredeterminada') || 'EURO';
+    let monedaGrupoActual = null;
+    let tasasConv = null;
+
+    async function inicializarConversion() {
+        try {
+            const [respGrupo, respTasas] = await Promise.all([
+                fetch(`/api/grupos/${grupoId}`),
+                fetch(`/api/gastos/tasas/${monedaPref}`)
+            ]);
+            if (respGrupo.ok) {
+                const g = await respGrupo.json();
+                monedaGrupoActual = g.moneda;
+                if (!idCreadorGrupo) idCreadorGrupo = g.idCreador;
+            }
+            if (respTasas.ok) {
+                tasasConv = await respTasas.json();
+            }
+        } catch (e) {
+            console.error('Error inicializando conversión:', e);
+        }
+    }
+
+    function convertirMonto(amount) {
+        if (!tasasConv || !monedaGrupoActual || monedaGrupoActual === monedaPref) return amount;
+        const iso = ENUM_A_ISO[monedaGrupoActual];
+        if (!iso) return amount;
+        const tasa = tasasConv[iso];
+        if (!tasa) return amount;
+        return amount / tasa;
+    }
+
+    function fmtMoney(amount) {
+        const val = convertirMonto(amount);
+        const iso = ENUM_A_ISO[monedaPref] || 'EUR';
+        const sym = ISO_SIMBOLO[iso] || monedaPref;
+        return `${val.toFixed(2)}${sym}`;
+    }
+
+    function simPref() {
+        return ISO_SIMBOLO[ENUM_A_ISO[monedaPref] || 'EUR'] || monedaPref;
+    }
+
     if (!grupoId) {
         window.location.href = 'dashboard.html';
     }
 
-    window.onload = () => {
+    window.onload = async () => {
         document.getElementById('tituloGrupo').textContent = `Grupo #${grupoId}`;
         cargarCategoriasForm();
         cargarCategoriasFiltro();
         renderEmotePicker();
-        cargarMonedasGasto(); //Cargar monedas disponibles para los gastos
+        cargarMonedasGasto();
         mostrarTab('resumen');
+
+        await inicializarConversion();
 
         cargarMiembros().then(() => {
             cargarUsuariosPagador();
@@ -1266,7 +1321,7 @@
                     ? '<span style="color: #1f9f58; font-weight: bold;">✓ Pagado</span>'
                     : esPagador
                         ? 'Eres quien pagó este gasto'
-                        : `Deuda pendiente: ${g.monto}€`;
+                        : `Deuda pendiente: ${fmtMoney(g.monto)}`;
                 
                 const actionButton = (!estaPagado && !esPagador)
                     ? `<button class="btn-accent" onclick="marcarGastoPagado(${g.id})">Marcar como pagado</button>`
@@ -1307,7 +1362,7 @@
                     <div class="gasto" id="gasto-${g.id}">
                         <div class="gasto-header">
                             <span>${g.concepto} (pagado por ${pagadorNombre})</span>
-                            <span class="monto">${g.monto}€</span>
+                            <span class="monto">${fmtMoney(g.monto)}</span>
                         </div>
                         <div class="tags">
                             <span class="tag tag-categoria">🏷️ ${categoriaTexto}</span>
@@ -1362,13 +1417,21 @@
             const data = await resp.json();
             //para acyualizar el gasto tutal del grupo
             if (totalCont && data.totalGastado != null) {
-                totalCont.innerText = data.totalGastado.toFixed(2) + "€";
+                totalCont.innerText = fmtMoney(data.totalGastado);
             }
+
+            const convNota = (monedaGrupoActual && monedaGrupoActual !== monedaPref)
+                ? `<span style="font-size:0.8em;color:var(--muted);margin-left:8px;">💱 convertido a ${simPref()}</span>` : '';
+            const balanceHeader = document.querySelector('#tabResumen .seccion h3');
+            if (balanceHeader && !balanceHeader.querySelector('span')) {
+                balanceHeader.insertAdjacentHTML('beforeend', convNota);
+            }
+
             balancesCont.innerHTML = '';
             (data.balances || []).forEach(b => {
                 const clase = b.estado === 'positivo' ? 'estado-positivo' : (b.estado === 'debe' ? 'estado-debe' : 'estado-equilibrado');
                 const inicial = b.username ? b.username[0].toUpperCase() : '?';
-                const monto = b.estado === 'positivo' ? `+${b.balance.toFixed(2)}€` : (b.estado === 'debe' ? `${b.balance.toFixed(2)}€` : '0.00€');
+                const monto = b.estado === 'positivo' ? `+${fmtMoney(b.balance)}` : (b.estado === 'debe' ? `${fmtMoney(b.balance)}` : `0.00${simPref()}`);
                 balancesCont.innerHTML += `<li class="balance-card ${clase}"><div class="balance-avatar">${inicial}</div><span class="balance-name">${b.username}</span><span class="balance-amount">${monto}</span></li>`;
             });
 
@@ -1380,7 +1443,7 @@
             }
 
             soluciones.forEach(s => {
-                solCont.innerHTML += `<li class="sol-card"><span class="sol-de">${s.deUsername}</span><span class="sol-flecha">→</span><span class="sol-monto">${s.monto.toFixed(2)}€</span><span class="sol-flecha">→</span><span class="sol-a">${s.aUsername}</span></li>`;
+                solCont.innerHTML += `<li class="sol-card"><span class="sol-de">${s.deUsername}</span><span class="sol-flecha">→</span><span class="sol-monto">${fmtMoney(s.monto)}</span><span class="sol-flecha">→</span><span class="sol-a">${s.aUsername}</span></li>`;
             });
         } catch (err) {
             console.error("DETALLE DEL ERROR:", err); // <-- ESTO ES CLAVE
@@ -1548,7 +1611,7 @@
                     <div class="gasto">
                         <div class="gasto-header">
                             <span><strong>${p.pagador.username}</strong> pagó a <strong>${p.receptor.username}</strong></span>
-                            <span class="monto">${p.monto.toFixed(2)}€</span>
+                            <span class="monto">${fmtMoney(p.monto)}</span>
                         </div>
                         <div>Fecha: ${fecha}</div>
                     </div>
@@ -1770,7 +1833,7 @@
             ? '<span style="color: #1f9f58; font-weight: bold;">✓ Pagado</span>'
             : esPagador
                 ? 'Eres quien pagó este gasto'
-                : `Deuda pendiente: ${gastoData.monto}€`;
+                : `Deuda pendiente: ${fmtMoney(gastoData.monto)}`;
         
         const actionButton = (!estaPagado && !esPagador)
             ? `<button class="btn-accent" onclick="marcarGastoPagado(${gastoData.id})">Marcar como pagado</button>`
@@ -1791,7 +1854,7 @@
         gastoElement.innerHTML = `
             <div class="gasto-header">
                 <span>${gastoData.concepto} (pagado por ${pagadorNombre})</span>
-                <span class="monto">${gastoData.monto}€</span>
+                <span class="monto">${fmtMoney(gastoData.monto)}</span>
             </div>
             <div class="tags">
                 <span class="tag tag-categoria">🏷️ ${categoriaTexto}</span>
