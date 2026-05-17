@@ -30,6 +30,9 @@ public class Gasto {
     private boolean pagado = false;
     private LocalDateTime fecha = LocalDateTime.now();
 
+    @Column(name = "ticket_url", length = 500)
+    private String ticketUrl;
+
     @ManyToOne
     @JoinColumn(name = "usuario_id")
     private Usuario pagador;
@@ -80,4 +83,6 @@ public class Gasto {
     public void setGrupo(Grupo grupo) { this.grupo = grupo; }
     public List<Usuario> getParticipantes() { return participantes; }
     public void setParticipantes(List<Usuario> participantes) { this.participantes = participantes; }
+    public String getTicketUrl() { return ticketUrl; }
+    public void setTicketUrl(String ticketUrl) { this.ticketUrl = ticketUrl; }
 }

@@ -9,17 +9,28 @@ import com.mycompany.app.service.GastoService;
 import com.mycompany.app.service.GrupoService;
 import com.mycompany.app.repository.GastoRepository;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.UUID;
 import java.util.List;
 import java.util.Map;
 import java.util.Arrays;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController // Ruta base para gastos
 @RequestMapping("/api/gastos") 
 public class GastoController {
+
+    @Value("${app.uploads.dir}")
+    private String uploadsDir;
 
     @Autowired
     private GastoService gastoService;
@@ -31,13 +42,35 @@ public class GastoController {
     private GastoRepository gastoRepository;
 
     /**
-     * Crear un gasto
+     * Crear un gasto (con foto de ticket opcional)
      */
-    @PostMapping("/crear")
-    public ResponseEntity<?> crear(@RequestBody Gasto gasto) {
+    @PostMapping(value = "/crear", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> crear(
+            @RequestPart("gasto") String gastoJson,
+            @RequestPart(value = "ticket", required = false) MultipartFile ticket) {
         try {
-            Gasto nuevo = gastoService.crear(gasto);
+            ObjectMapper mapper = new ObjectMapper();
+            Gasto gasto = mapper.readValue(gastoJson, Gasto.class);
+
+            String ticketUrl = null;
+            if (ticket != null && !ticket.isEmpty()) {
+                String extension = "";
+                String originalName = ticket.getOriginalFilename();
+                if (originalName != null && originalName.contains(".")) {
+                    extension = originalName.substring(originalName.lastIndexOf("."));
+                }
+                String nombreArchivo = UUID.randomUUID() + extension;
+                Path carpeta = Paths.get(uploadsDir);
+                Files.createDirectories(carpeta);
+                Path destino = carpeta.resolve(nombreArchivo);
+                ticket.transferTo(destino.toFile());
+                ticketUrl = "/tickets/" + nombreArchivo;
+            }
+
+            Gasto nuevo = gastoService.crear(gasto, ticketUrl);
             return ResponseEntity.ok(nuevo);
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body("Error al guardar el ticket: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
