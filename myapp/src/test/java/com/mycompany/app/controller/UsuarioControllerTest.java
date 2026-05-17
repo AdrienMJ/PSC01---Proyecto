@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -25,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mycompany.app.entity.Moneda;
 import com.mycompany.app.entity.Usuario;
 import com.mycompany.app.service.UsuarioService;
 
@@ -152,6 +154,45 @@ public class UsuarioControllerTest {
         doThrow(new RuntimeException("Usuario no encontrado")).when(usuarioService).eliminarCuentaYDatos(anyLong());
 
         mockMvc.perform(delete("/api/usuarios/99"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Error: Usuario no encontrado"));
+    }
+
+    // ==========================================
+    // PUT /api/usuarios/{id}/moneda-predeterminada
+    // ==========================================
+
+    @Test
+    void testActualizarMonedaPredeterminadaExito() throws Exception {
+        usuarioBase.setMonedaPredeterminada(Moneda.DOLAR);
+        when(usuarioService.actualizarMonedaPredeterminada(anyLong(), any(Moneda.class)))
+                .thenReturn(usuarioBase);
+
+        mockMvc.perform(put("/api/usuarios/1/moneda-predeterminada")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"moneda\": \"DOLAR\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("TestUser"))
+                .andExpect(jsonPath("$.monedaPredeterminada").value("DOLAR"));
+    }
+
+    @Test
+    void testActualizarMonedaPredeterminadaMonedaInvalida() throws Exception {
+        mockMvc.perform(put("/api/usuarios/1/moneda-predeterminada")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"moneda\": \"INVALIDA\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Moneda no válida"));
+    }
+
+    @Test
+    void testActualizarMonedaPredeterminadaUsuarioNoEncontrado() throws Exception {
+        when(usuarioService.actualizarMonedaPredeterminada(anyLong(), any(Moneda.class)))
+                .thenThrow(new Exception("Usuario no encontrado"));
+
+        mockMvc.perform(put("/api/usuarios/99/moneda-predeterminada")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"moneda\": \"EURO\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Error: Usuario no encontrado"));
     }

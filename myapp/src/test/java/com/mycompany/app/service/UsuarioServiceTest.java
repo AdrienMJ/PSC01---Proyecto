@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import com.mycompany.app.entity.Moneda;
 import com.mycompany.app.entity.Usuario;
 import com.mycompany.app.repository.UsuarioRepository;
 
@@ -153,6 +154,39 @@ public class UsuarioServiceTest {
         // Verificamos que NO se intenta borrar el grupo
         verify(jdbcTemplate, never()).update(contains("DELETE FROM grupos WHERE id = ?"), anyLong());
         verify(usuarioRepository).deleteById(idUsuario);
+    }
+
+    // --- SECCIÓN: Moneda Predeterminada ---
+
+    @Test
+    public void testActualizarMonedaPredeterminadaExito() throws Exception {
+        Usuario usuario = new Usuario("Ana", "ana@mail.com", "123");
+        usuario.setId(1L);
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+
+        Usuario resultado = usuarioService.actualizarMonedaPredeterminada(1L, Moneda.DOLAR);
+
+        assertNotNull(resultado);
+        assertEquals(Moneda.DOLAR, resultado.getMonedaPredeterminada());
+        verify(usuarioRepository).save(usuario);
+    }
+
+    @Test
+    public void testActualizarMonedaPredeterminadaUsuarioNoEncontrado() {
+        when(usuarioRepository.findById(99L)).thenReturn(Optional.empty());
+
+        Exception ex = assertThrows(Exception.class, () ->
+            usuarioService.actualizarMonedaPredeterminada(99L, Moneda.EURO)
+        );
+        assertEquals("Usuario no encontrado", ex.getMessage());
+        verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    public void testMonedaPredeterminadaPorDefectoEsEuro() {
+        Usuario usuario = new Usuario("Luis", "luis@mail.com", "abc");
+        assertEquals(Moneda.EURO, usuario.getMonedaPredeterminada());
     }
 
     @Test
