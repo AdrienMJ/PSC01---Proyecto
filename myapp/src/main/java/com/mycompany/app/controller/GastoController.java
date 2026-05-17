@@ -41,6 +41,9 @@ public class GastoController {
     @Autowired
     private GastoRepository gastoRepository;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     /**
      * Crear un gasto (con foto de ticket opcional)
      */
@@ -49,8 +52,7 @@ public class GastoController {
             @RequestPart("gasto") String gastoJson,
             @RequestPart(value = "ticket", required = false) MultipartFile ticket) {
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            Gasto gasto = mapper.readValue(gastoJson, Gasto.class);
+            Gasto gasto = objectMapper.readValue(gastoJson, Gasto.class);
 
             String ticketUrl = null;
             if (ticket != null && !ticket.isEmpty()) {

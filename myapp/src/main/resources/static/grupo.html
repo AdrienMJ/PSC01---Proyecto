@@ -551,8 +551,14 @@
 
         <div class="seccion">
             <h3>Invitar persona al grupo</h3>
+
+            <div id="contactosParaInvitar" style="display:none; margin-bottom: 14px;">
+                <p class="hint" style="margin-bottom: 6px;">Desde tus contactos:</p>
+                <div id="listaContactosInvitar" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+            </div>
+
             <div class="row">
-                <input type="email" id="emailInvitado" placeholder="Email del usuario a invitar">
+                <input type="email" id="emailInvitado" placeholder="O escribe el email del usuario">
                 <button class="btn-info" onclick="invitarUsuario()">Invitar</button>
             </div>
             <p id="msgInvitar" class="msg"></p>
@@ -905,6 +911,8 @@
             cargarFiltrosPagador();
         });
 
+        cargarContactosParaInvitar();
+
         cargarGastos();
         cargarResumen();
         cargarGraficas(grupoId);
@@ -1126,6 +1134,58 @@
             });
         } catch (err) {
             console.error("Error cargando monedas:", err);
+        }
+    }
+
+    async function cargarContactosParaInvitar() {
+        const cont = document.getElementById('contactosParaInvitar');
+        const lista = document.getElementById('listaContactosInvitar');
+        try {
+            const resp = await fetch(`/api/usuarios/${userId}/contactos`);
+            if (!resp.ok) return;
+            const contactos = await resp.json();
+            if (contactos.length === 0) return;
+
+            lista.innerHTML = '';
+            contactos.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-info';
+                btn.style.cssText = 'font-size:0.85em; padding:6px 12px;';
+                btn.textContent = `${c.username}`;
+                btn.title = c.email;
+                btn.onclick = () => invitarContacto(c.email);
+                lista.appendChild(btn);
+            });
+            cont.style.display = 'block';
+        } catch (err) {
+            console.error('Error cargando contactos para invitar:', err);
+        }
+    }
+
+    async function invitarContacto(email) {
+        const msg = document.getElementById('msgInvitar');
+        const payload = { email, idUsuarioInvitador: userId };
+        try {
+            const resp = await fetch(`/api/grupos/${grupoId}/invitar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (resp.ok) {
+                msg.textContent = `¡${email} invitado con éxito!`;
+                msg.style.color = 'green';
+                await cargarMiembros();
+                cargarUsuariosPagador();
+                renderParticipantesBox();
+                cargarResumen();
+                cargarContactosParaInvitar();
+            } else {
+                msg.textContent = 'Error: ' + await resp.text();
+                msg.style.color = 'red';
+            }
+        } catch {
+            msg.textContent = 'Error de conexión al servidor.';
+            msg.style.color = 'red';
         }
     }
 

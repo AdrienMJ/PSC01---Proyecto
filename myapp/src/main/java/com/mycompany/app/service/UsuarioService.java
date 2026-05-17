@@ -105,6 +105,11 @@ public class UsuarioService {
             }
         }
 
+        jdbcTemplate.update(
+                "DELETE FROM usuario_contactos WHERE usuario_id = ? OR contacto_id = ?",
+                idUsuario, idUsuario
+        );
+
         usuarioRepository.deleteById(idUsuario);
     }
 

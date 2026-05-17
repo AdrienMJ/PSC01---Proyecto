@@ -24,8 +24,17 @@ public class Usuario {
     private Moneda monedaPredeterminada = Moneda.EURO;
 
     @ManyToMany(mappedBy = "miembros")
-    @JsonIgnore //Esto es importante para que el JSON no pese infinito
+    @JsonIgnore
     private List<Grupo> grupos = new ArrayList<>();
+
+    @ManyToMany(fetch = jakarta.persistence.FetchType.EAGER)
+    @JoinTable(
+        name = "usuario_contactos",
+        joinColumns = @JoinColumn(name = "usuario_id"),
+        inverseJoinColumns = @JoinColumn(name = "contacto_id")
+    )
+    @JsonIgnore
+    private List<Usuario> contactos = new ArrayList<>();
 
     public Usuario() {}
 
@@ -46,5 +55,7 @@ public class Usuario {
     public void setPassword(String password) { this.password = password; }
     public Moneda getMonedaPredeterminada() { return monedaPredeterminada; }
     public void setMonedaPredeterminada(Moneda monedaPredeterminada) { this.monedaPredeterminada = monedaPredeterminada; }
-    public List<Grupo> getGrupos() { return grupos; } // <--- CRUCIAL para la relación
+    public List<Grupo> getGrupos() { return grupos; }
+    public List<Usuario> getContactos() { return contactos; }
+    public void setContactos(List<Usuario> contactos) { this.contactos = contactos; }
 }

@@ -6,7 +6,17 @@
       "Bash(./gradlew :myapp:test --tests \"com.mycompany.app.service.UsuarioServiceTest\" --tests \"com.mycompany.app.controller.UsuarioControllerTest\" --info)",
       "Bash(./gradlew :myapp:test --tests \"com.mycompany.app.service.UsuarioServiceTest\" --tests \"com.mycompany.app.controller.UsuarioControllerTest\")",
       "Bash(Select-String -Pattern \"test|BUILD|PASSED|FAILED\")",
-      "Bash(xargs grep -E 'tests=|testcase name=')"
+      "Bash(xargs grep -E 'tests=|testcase name=')",
+      "Bash(Find \"c:\\\\Users\\\\Mc358\\\\Desktop\\\\ProyectoMasonico\\\\PSC01---Proyecto\" -name \"*.sql\" -o -name \"schema.sql\" -o -name \"create*.sql\")",
+      "Bash(Find \"c:\\\\Users\\\\Mc358\\\\Desktop\\\\ProyectoMasonico\\\\PSC01---Proyecto\" -type f -name \"*Contacto*\" -o -name \"*Contact*\")",
+      "Bash(./gradlew :myapp:compileJava)",
+      "Bash(./gradlew :myapp:test)",
+      "Bash(git stash *)",
+      "Bash(./gradlew :myapp:test --tests \"com.mycompany.app.controller.GastoControllerTest.testCrearExito\" --tests \"com.mycompany.app.controller.GastoControllerTest.testCrearError\")",
+      "Bash(./gradlew :myapp:test --tests \"com.mycompany.app.controller.GastoControllerTest.testCrearExito\" --info)",
+      "Bash(./gradlew :myapp:test --tests \"com.mycompany.app.service.ContactoServiceTest\")",
+      "Bash(./gradlew :myapp:test --tests \"com.mycompany.app.controller.ContactoControllerTest\")",
+      "Bash(./gradlew :myapp:test --tests \"com.mycompany.app.service.ContactoServiceTest\" --tests \"com.mycompany.app.controller.ContactoControllerTest\")"
     ]
   }
 }
