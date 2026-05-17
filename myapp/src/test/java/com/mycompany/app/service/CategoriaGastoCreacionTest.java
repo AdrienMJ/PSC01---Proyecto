@@ -62,7 +62,7 @@ public class CategoriaGastoCreacionTest {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(pagador));
         when(gastoRepository.save(any(Gasto.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Gasto creado = gastoService.crear(gasto);
+        Gasto creado = gastoService.crear(gasto, null);
 
         assertNotNull(creado);
         assertEquals(CategoriaGasto.COMIDA, creado.getCategoria());
@@ -93,8 +93,8 @@ public class CategoriaGastoCreacionTest {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(pagador));
         when(gastoRepository.save(any(Gasto.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Gasto creadoOcio = gastoService.crear(gastoOcio);
-        Gasto creadoTransporte = gastoService.crear(gastoTransporte);
+        Gasto creadoOcio = gastoService.crear(gastoOcio, null);
+        Gasto creadoTransporte = gastoService.crear(gastoTransporte, null);
 
         assertEquals(CategoriaGasto.OCIO, creadoOcio.getCategoria());
         assertEquals(CategoriaGasto.TRANSPORTE, creadoTransporte.getCategoria());
@@ -117,7 +117,7 @@ public class CategoriaGastoCreacionTest {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(pagador));
         when(gastoRepository.save(any(Gasto.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Gasto creado = gastoService.crear(gasto);
+        Gasto creado = gastoService.crear(gasto, null);
 
         assertEquals(CategoriaGasto.OTROS, creado.getCategoria());
     }

@@ -597,6 +597,19 @@
                         </div>
                     </div>
 
+                    <div class="full">
+                        <label style="display: block; font-size: 0.9em; color: var(--muted); font-weight: 600; margin-bottom: 6px;">
+                            📎 Foto del ticket (opcional)
+                        </label>
+                        <input type="file" id="ticketFoto" accept="image/*" capture="environment"
+                               style="width: 100%; border: 1px dashed var(--border); border-radius: 8px;
+                                      padding: 8px; background: #fbfdff; box-sizing: border-box; font-size: 0.9em;">
+                        <div id="ticketPreview" style="margin-top: 8px; display: none;">
+                            <img id="ticketPreviewImg" style="max-width: 100%; max-height: 160px;
+                                 border-radius: 8px; border: 1px solid var(--border); display: block;">
+                        </div>
+                    </div>
+
                     <button class="full" onclick="crearGasto()">Guardar gasto</button>
                 </div>
                 <p id="msgGasto" class="msg"></p>
@@ -1107,26 +1120,32 @@
             return;
         }
 
-        const payload = {
+        const gastoData = {
             concepto: concepto,
             monto: parseFloat(monto),
             categoria: categoria,
-            moneda: document.getElementById('monedaGasto').value, // <--- ¡ESTO ES VITAL!
+            moneda: document.getElementById('monedaGasto').value,
             pagador: { id: parseInt(pagadorId) },
             grupo: { id: parseInt(grupoId) },
             repartoGeneral: repartoGeneral,
-            participantes: idsParticipantes.map(id => ({ id: parseInt(id) }))
+            participantes: idsParticipantes.map(id => ({ id: parseInt(id) })),
+            emote: selectedEmote || null
         };
 
-        if (selectedEmote) {
-            payload.emote = selectedEmote;
+        // Usamos FormData para poder adjuntar la foto junto con el JSON
+        const formData = new FormData();
+        formData.append('gasto', new Blob([JSON.stringify(gastoData)], { type: 'application/json' }));
+
+        const ticketFile = document.getElementById('ticketFoto').files[0];
+        if (ticketFile) {
+            formData.append('ticket', ticketFile);
         }
 
         try {
+            // Sin header Content-Type: el navegador lo establece automáticamente con el boundary
             const resp = await fetch('/api/gastos/crear', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: formData
             });
 
             if (resp.ok) {
@@ -1138,6 +1157,8 @@
                 document.getElementById('repartoGeneral').checked = true;
                 toggleParticipantes();
                 document.querySelectorAll('#participantesBox input[type="checkbox"]').forEach(c => c.checked = false);
+                document.getElementById('ticketFoto').value = '';
+                document.getElementById('ticketPreview').style.display = 'none';
                 selectedEmote = '';
                 renderEmotePicker();
                 await cargarGastos();
@@ -1153,6 +1174,19 @@
             msg.style.color = 'red';
         }
     }
+
+    // Previsualización del ticket al seleccionar archivo
+    document.getElementById('ticketFoto').addEventListener('change', function () {
+        const file = this.files[0];
+        const preview = document.getElementById('ticketPreview');
+        const img = document.getElementById('ticketPreviewImg');
+        if (file) {
+            img.src = URL.createObjectURL(file);
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
+        }
+    });
 
     function participantesTexto(gasto) {
         if (gasto.repartoGeneral || !gasto.participantes || gasto.participantes.length === 0) {
@@ -1240,6 +1274,19 @@
                 
                 const categoriaTexto = `${g.emote ? `${g.emote} ` : ''}${categoriaLabel(g.categoria || 'OTROS')}`;
 
+                const ticketHtml = g.ticketUrl
+                    ? `<div style="margin-top: 8px;">
+                           <a href="${g.ticketUrl}" target="_blank" title="Ver ticket completo">
+                               <img src="${g.ticketUrl}" alt="Ticket"
+                                    style="max-height: 80px; border-radius: 6px;
+                                           border: 1px solid var(--border); cursor: pointer;
+                                           transition: opacity 0.2s;"
+                                    onmouseover="this.style.opacity='0.8'"
+                                    onmouseout="this.style.opacity='1'">
+                           </a>
+                       </div>`
+                    : '';
+
                 cont.innerHTML += `
                     <div class="gasto" id="gasto-${g.id}">
                         <div class="gasto-header">
@@ -1252,6 +1299,7 @@
                         </div>
                         <div>Fecha: ${fecha}</div>
                         <div>${estadoTexto}</div>
+                        ${ticketHtml}
                         <div class="row" style="margin-top: 8px;">${actionButton}${botonesAdmin}</div>
                     </div>
                 `;

@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -29,6 +30,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mycompany.app.dto.ResumenGrupoDTO;
 import com.mycompany.app.entity.Gasto;
@@ -71,22 +73,20 @@ public class GastoControllerTest {
     // ==========================================
     @Test
     void testCrearExito() throws Exception {
-        when(gastoService.crear(any(Gasto.class))).thenReturn(gastoBase);
+        when(gastoService.crear(any(Gasto.class), isNull())).thenReturn(gastoBase);
 
-        mockMvc.perform(post("/api/gastos/crear")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(gastoBase)))
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/gastos/crear")
+                .file("gasto", objectMapper.writeValueAsBytes(gastoBase)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.monto").value(150.0));
     }
 
     @Test
     void testCrearError() throws Exception {
-        when(gastoService.crear(any(Gasto.class))).thenThrow(new Exception("Monto invalido"));
+        when(gastoService.crear(any(Gasto.class), isNull())).thenThrow(new Exception("Monto invalido"));
 
-        mockMvc.perform(post("/api/gastos/crear")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(gastoBase)))
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/gastos/crear")
+                .file("gasto", objectMapper.writeValueAsBytes(gastoBase)))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Error: Monto invalido"));
     }

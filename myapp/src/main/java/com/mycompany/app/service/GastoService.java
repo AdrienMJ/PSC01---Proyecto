@@ -46,7 +46,7 @@ public class GastoService {
     private PagoRepository pagoRepository;
 
     // Añadimos Moneda monedaOrigen como parámetro
-    public Gasto crear(Gasto gasto) throws Exception {
+    public Gasto crear(Gasto gasto, String ticketUrl) throws Exception {
         
         
         if (gasto.getMonto() == null || gasto.getMonto() <= 0) {
@@ -139,6 +139,9 @@ public class GastoService {
         gasto.setGrupo(grupo);
         gasto.setPagador(pagador);
         gasto.setParticipantes(participantesFinales);
+        if (ticketUrl != null) {
+            gasto.setTicketUrl(ticketUrl);
+        }
 
         return gastoRepository.save(gasto);
     }

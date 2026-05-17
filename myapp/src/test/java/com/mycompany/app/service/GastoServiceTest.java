@@ -74,7 +74,7 @@ public class GastoServiceTest {
         try (MockedConstruction<RestTemplate> mocked = mockConstruction(RestTemplate.class,
                 (mock, context) -> when(mock.getForObject(anyString(), eq(Map.class))).thenReturn(mockResponse))) {
             
-            Gasto resultado = gastoService.crear(gasto);
+            Gasto resultado = gastoService.crear(gasto, null);
             assertEquals(90.0, resultado.getMonto());
             assertEquals(Moneda.EURO, resultado.getMoneda());
         }
@@ -84,15 +84,15 @@ public class GastoServiceTest {
     public void testCrearGasto_ValidacionesFallidas() {
         Gasto g = new Gasto();
         // Caso: Monto nulo
-        assertThrows(Exception.class, () -> gastoService.crear(g));
+        assertThrows(Exception.class, () -> gastoService.crear(g, null));
         
         g.setMonto(10.0);
         // Caso: Grupo nulo
-        assertThrows(Exception.class, () -> gastoService.crear(g));
+        assertThrows(Exception.class, () -> gastoService.crear(g, null));
         
         g.setGrupo(grupo);
         // Caso: Pagador nulo
-        assertThrows(Exception.class, () -> gastoService.crear(g));
+        assertThrows(Exception.class, () -> gastoService.crear(g, null));
     }
 
     @Test
@@ -109,7 +109,7 @@ public class GastoServiceTest {
         when(usuarioRepository.findAllById(any())).thenReturn(List.of(user1));
         when(gastoRepository.save(any())).thenReturn(gasto);
 
-        Gasto result = gastoService.crear(gasto);
+        Gasto result = gastoService.crear(gasto, null);
         assertFalse(result.isRepartoGeneral());
         assertEquals(1, result.getParticipantes().size());
     }
@@ -254,7 +254,7 @@ public class GastoServiceTest {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(user1));
         when(gastoRepository.save(any(Gasto.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        Gasto result = gastoService.crear(gasto);
+        Gasto result = gastoService.crear(gasto, null);
         
         assertEquals(Moneda.EURO, result.getMoneda());
         assertEquals(CategoriaGasto.OTROS, result.getCategoria());
@@ -267,24 +267,24 @@ public class GastoServiceTest {
         Gasto gasto = new Gasto();
         // 1. Monto negativo
         gasto.setMonto(-10.0);
-        assertThrows(Exception.class, () -> gastoService.crear(gasto));
+        assertThrows(Exception.class, () -> gastoService.crear(gasto, null));
         
         // 2. Grupo sin ID
         gasto.setMonto(10.0);
         gasto.setGrupo(new Grupo()); 
-        assertThrows(Exception.class, () -> gastoService.crear(gasto));
+        assertThrows(Exception.class, () -> gastoService.crear(gasto, null));
         
         // 3. Pagador sin ID
         gasto.setGrupo(grupo);
         gasto.setPagador(new Usuario());
-        assertThrows(Exception.class, () -> gastoService.crear(gasto));
+        assertThrows(Exception.class, () -> gastoService.crear(gasto, null));
         
         // 4. Pagador que no está en el grupo
         Usuario externo = new Usuario(); externo.setId(99L);
         gasto.setPagador(externo);
         when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
         when(usuarioRepository.findById(99L)).thenReturn(Optional.of(externo));
-        assertThrows(Exception.class, () -> gastoService.crear(gasto));
+        assertThrows(Exception.class, () -> gastoService.crear(gasto, null));
     }
 
     @Test
@@ -400,7 +400,7 @@ public class GastoServiceTest {
         when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(user1));
         
-        Exception ex = assertThrows(Exception.class, () -> gastoService.crear(gasto));
+        Exception ex = assertThrows(Exception.class, () -> gastoService.crear(gasto, null));
         assertEquals("Todos los participantes deben pertenecer al grupo", ex.getMessage());
     }
 
@@ -516,12 +516,12 @@ public class GastoServiceTest {
         
         // Rama 1: Participantes es null
         gasto.setParticipantes(null);
-        Gasto g1 = gastoService.crear(gasto);
+        Gasto g1 = gastoService.crear(gasto, null);
         assertEquals(2, g1.getParticipantes().size()); // Coge los del grupo
         
         // Rama 2: Participantes está vacío
         gasto.setParticipantes(new ArrayList<>());
-        Gasto g2 = gastoService.crear(gasto);
+        Gasto g2 = gastoService.crear(gasto, null);
         assertEquals(2, g2.getParticipantes().size());
     }
 
