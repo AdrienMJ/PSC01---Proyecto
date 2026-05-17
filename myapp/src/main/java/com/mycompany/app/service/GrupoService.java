@@ -155,4 +155,19 @@ public class GrupoService {
         grupo.getMiembros().removeIf(m -> m.getId().equals(idMiembro));
         grupoRepository.save(grupo);
     }
+
+    @Transactional
+    public Grupo clonarGrupo(Long idGrupoOriginal, String nuevoNombre, Long idUsuarioAccion) {
+        Grupo original = grupoRepository.findById(idGrupoOriginal)
+                .orElseThrow(() -> new RuntimeException("Grupo original no encontrado con ID: " + idGrupoOriginal));
+
+        Grupo nuevoGrupo = new Grupo(nuevoNombre, original.getMoneda());
+        nuevoGrupo.setIdCreador(idUsuarioAccion);
+
+        for (Usuario miembro : original.getMiembros()) {
+            nuevoGrupo.addMiembro(miembro); // addMiembro sincroniza automáticamente la relación bidireccional
+        }
+
+        return grupoRepository.save(nuevoGrupo);
+    }
 }

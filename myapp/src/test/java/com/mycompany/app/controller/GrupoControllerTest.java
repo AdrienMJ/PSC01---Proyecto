@@ -16,7 +16,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.mockito.ArgumentMatchers.any;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -275,5 +277,23 @@ public class GrupoControllerTest {
                 .param("idAdmin", "2"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("No tiene permisos"));
+    }
+
+    @Test
+    void testClonarGrupoExito() throws Exception {
+        Grupo grupoClonado = new Grupo("Grupo Nuevo", Moneda.EURO);
+        grupoClonado.setId(2L);
+        when(grupoService.clonarGrupo(eq(1L), eq("Grupo Nuevo"), eq(1L))).thenReturn(grupoClonado);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("nombre", "Grupo Nuevo");
+        payload.put("idUsuarioAccion", 1L);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/grupos/1/clonar")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(payload)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.id").value(2L))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.nombre").value("Grupo Nuevo"));
     }
 }

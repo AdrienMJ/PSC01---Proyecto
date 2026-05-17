@@ -515,6 +515,7 @@
                         <span id="txtTotalGastado" style="color: var(--accent); font-weight: bold;">0.00€</span>
                     </div>
                 <button class="btn-accent" onclick="cargarResumen()">Actualizar resumen</button>
+                <button class="btn-info" onclick="abrirModalClonarGrupo()">Clonar grupo</button>
             </div>
             <p class="hint">Verás quién está en positivo, equilibrado o en deuda.</p>
             <ul id="listaBalances" class="balance-list"></ul>
@@ -728,6 +729,21 @@
             <div class="modal-actions">
                 <button class="btn-modal-cancel" onclick="cerrarModalEditarGasto()">Cancelar</button>
                 <button class="btn-accent" onclick="confirmarEditarGasto()">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalClonarGrupo" class="modal-overlay" onclick="cerrarModalClonarGrupo(event)">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <h3>Clonar este grupo</h3>
+            <p>Se creará un nuevo grupo en blanco conservando todos los miembros actuales.</p>
+            <div style="margin-bottom: 15px;">
+                <label for="clonarNombre" style="display:block; font-size: 0.85em; color: var(--muted); margin-bottom: 5px;">Nombre del nuevo grupo/evento:</label>
+                <input type="text" id="clonarNombre" placeholder="Ej. Viaje de Verano 2026" style="width:100%; padding:8px; border-radius:6px; border: 1px solid var(--border); box-sizing: border-box;">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-modal-cancel" onclick="cerrarModalClonarGrupo()">Cancelar</button>
+                <button class="btn-accent" onclick="confirmarClonarGrupo()">Confirmar Clonación</button>
             </div>
         </div>
     </div>
@@ -1841,6 +1857,52 @@
                     options: { scales: { y: { beginAtZero: true } } }
                 });
             });
+    }
+
+    // ========== Funciones para Clonar Grupo ==========
+    function abrirModalClonarGrupo() {
+        document.getElementById('clonarNombre').value = '';
+        document.getElementById('modalClonarGrupo').classList.add('open');
+    }
+
+    function cerrarModalClonarGrupo(event) {
+        if (!event || event.target.id === 'modalClonarGrupo') {
+            document.getElementById('modalClonarGrupo').classList.remove('open');
+        }
+    }
+
+    async function confirmarClonarGrupo() {
+        const nuevoNombre = document.getElementById('clonarNombre').value.trim();
+        if (!nuevoNombre) {
+            alert('❌ Debes ingresar un nombre para el nuevo grupo.');
+            return;
+        }
+
+        const payload = {
+            nombre: nuevoNombre,
+            idUsuarioAccion: userId
+        };
+
+        try {
+            const resp = await fetch(`/api/grupos/${grupoId}/clonar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (resp.ok) {
+                const grupoClonado = await resp.json();
+                document.getElementById('modalClonarGrupo').classList.remove('open');
+                alert(`🎉 ¡Grupo clonado con éxito!\nRedirigiendo al nuevo grupo: ${grupoClonado.nombre}`);
+                // Redirigimos automáticamente a la vista del nuevo grupo vacío
+                window.location.href = `grupo.html?id=${grupoClonado.id}`;
+            } else {
+                const error = await resp.text();
+                alert('❌ Error al clonar: ' + error);
+            }
+        } catch (err) {
+            alert('❌ Error de conexión con el servidor.');
+        }
     }
 
 </script>

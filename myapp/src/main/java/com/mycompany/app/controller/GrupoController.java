@@ -8,6 +8,7 @@ import com.mycompany.app.dto.RenombrarGrupoRequest;
 import com.mycompany.app.service.GrupoService;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -113,6 +114,23 @@ public class GrupoController {
             return ResponseEntity.ok("Miembro expulsado correctamente");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/{id}/clonar")
+    public ResponseEntity<?> clonar(@PathVariable("id") Long id, @RequestBody Map<String, Object> payload) {
+        try {
+            String nombre = (String) payload.get("nombre");
+            Long idUsuarioAccion = Long.valueOf(payload.get("idUsuarioAccion").toString());
+            
+            if (nombre == null || nombre.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("El nombre del nuevo grupo es obligatorio");
+            }
+
+            Grupo nuevoGrupo = grupoService.clonarGrupo(id, nombre, idUsuarioAccion);
+            return ResponseEntity.ok(nuevoGrupo);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error al clonar el grupo: " + e.getMessage());
         }
     }
 

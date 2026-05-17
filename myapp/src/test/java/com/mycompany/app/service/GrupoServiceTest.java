@@ -19,6 +19,7 @@ import com.mycompany.app.repository.GrupoRepository;
 import com.mycompany.app.repository.UsuarioRepository;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
@@ -292,5 +293,27 @@ public class GrupoServiceTest {
     public void testExpulsarMiembro_GrupoNoEncontrado() {
         when(grupoRepository.findById(99L)).thenReturn(Optional.empty());
         assertThrows(Exception.class, () -> grupoService.expulsarMiembro(99L, 1L, 2L));
+    }
+
+    @Test
+    public void testClonarGrupo_Exito() {
+        Grupo original = new Grupo("Grupo Viejo", Moneda.EURO);
+        original.setId(1L);
+        Usuario m1 = new Usuario("Adrien", "adrien@test.com", "123"); m1.setId(1L);
+        Usuario m2 = new Usuario("Prueba", "prueba@test.com", "123"); m2.setId(2L);
+        original.setMiembros(new ArrayList<>(Arrays.asList(m1, m2)));
+
+        when(grupoRepository.findById(1L)).thenReturn(Optional.of(original));
+        when(grupoRepository.save(any(Grupo.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        Grupo clonado = grupoService.clonarGrupo(1L, "Grupo Clonado", 1L);
+
+        assertNotNull(clonado);
+        assertEquals("Grupo Clonado", clonado.getNombre());
+        assertEquals(Moneda.EURO, clonado.getMoneda());
+        assertEquals(1L, clonado.getIdCreador());
+        assertEquals(2, clonado.getMiembros().size());
+        assertTrue(clonado.getGastos().isEmpty()); // Garantiza que inicia vacío
+        verify(grupoRepository).save(clonado);
     }
 }
