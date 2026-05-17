@@ -47,6 +47,7 @@ public class ContactoServiceTest {
         List<ContactoDTO> resultado = contactoService.obtenerContactos(1L);
 
         assertEquals(1, resultado.size());
+        assertEquals(2L, resultado.get(0).getId());
         assertEquals("Luis", resultado.get(0).getUsername());
         assertEquals("luis@mail.com", resultado.get(0).getEmail());
     }

@@ -45,7 +45,18 @@ public class ContactoControllerTest {
         mockMvc.perform(get("/api/usuarios/1/contactos"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].username").value("Luis"));
+                .andExpect(jsonPath("$[0].id").value(2))
+                .andExpect(jsonPath("$[0].username").value("Luis"))
+                .andExpect(jsonPath("$[0].email").value("luis@mail.com"));
+    }
+
+    @Test
+    void testListarContactosErrorInterno() throws Exception {
+        when(contactoService.obtenerContactos(1L)).thenThrow(new AssertionError("fallo grave"));
+
+        mockMvc.perform(get("/api/usuarios/1/contactos"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string("Error interno: AssertionError: fallo grave"));
     }
 
     @Test
@@ -115,6 +126,18 @@ public class ContactoControllerTest {
                 .andExpect(content().string("Este usuario ya está en tus contactos"));
     }
 
+    @Test
+    void testAgregarContactoErrorInterno() throws Exception {
+        doThrow(new AssertionError("fallo grave"))
+                .when(contactoService).agregarContacto(anyLong(), anyString());
+
+        mockMvc.perform(post("/api/usuarios/1/contactos")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\": \"luis@mail.com\"}"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string("Error interno: AssertionError: fallo grave"));
+    }
+
     // --- SECCIÓN: DELETE /{id}/contactos/{contactoId} ---
 
     @Test
@@ -134,5 +157,15 @@ public class ContactoControllerTest {
         mockMvc.perform(delete("/api/usuarios/99/contactos/2"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Error: Usuario no encontrado"));
+    }
+
+    @Test
+    void testEliminarContactoErrorInterno() throws Exception {
+        doThrow(new AssertionError("fallo grave"))
+                .when(contactoService).eliminarContacto(anyLong(), anyLong());
+
+        mockMvc.perform(delete("/api/usuarios/1/contactos/2"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string("Error interno: AssertionError: fallo grave"));
     }
 }
