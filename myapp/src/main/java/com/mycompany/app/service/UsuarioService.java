@@ -58,6 +58,11 @@ public class UsuarioService {
     return usuario;
 }
 
+    public Usuario obtenerPorId(Long id) throws Exception {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new Exception("Usuario no encontrado"));
+    }
+
     public java.util.List<Usuario> listarTodos() {
         return usuarioRepository.findAll();
     }
@@ -130,6 +135,24 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new Exception("Usuario no encontrado"));
         usuario.setMonedaPredeterminada(moneda);
+        return usuarioRepository.save(usuario);
+    }
+
+    public Usuario actualizarPerfil(Long id, String nombreVisible, String fotoPerfilUrl) throws Exception {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new Exception("Usuario no encontrado"));
+
+        if (nombreVisible != null) {
+            String nombreLimpio = nombreVisible.trim();
+            if (!nombreLimpio.isEmpty()) {
+                usuario.setUsername(nombreLimpio);
+            }
+        }
+
+        if (fotoPerfilUrl != null && !fotoPerfilUrl.isBlank()) {
+            usuario.setFotoPerfilUrl(fotoPerfilUrl);
+        }
+
         return usuarioRepository.save(usuario);
     }
 

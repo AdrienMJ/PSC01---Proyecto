@@ -243,6 +243,11 @@
                 const usuario = await resp.json();
                 localStorage.setItem('userId', usuario.id);
                 localStorage.setItem('username', usuario.username);
+                if (usuario.fotoPerfilUrl) {
+                    localStorage.setItem('fotoPerfilUrl', usuario.fotoPerfilUrl);
+                } else {
+                    localStorage.removeItem('fotoPerfilUrl');
+                }
                 msg.textContent = '¡Bienvenido, ' + usuario.username + '! Redirigiendo...';
                 msg.classList.add('success');
                 setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);

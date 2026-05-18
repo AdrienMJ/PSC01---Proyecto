@@ -17,6 +17,8 @@ public class Usuario {
 
     private String username;
     private String email;
+    @Column(name = "foto_perfil_url", length = 500)
+    private String fotoPerfilUrl;
     @JsonProperty(access = Access.WRITE_ONLY)
     private String password;
 
@@ -51,6 +53,8 @@ public class Usuario {
     public void setUsername(String username) { this.username = username; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+    public String getFotoPerfilUrl() { return fotoPerfilUrl; }
+    public void setFotoPerfilUrl(String fotoPerfilUrl) { this.fotoPerfilUrl = fotoPerfilUrl; }
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
     public Moneda getMonedaPredeterminada() { return monedaPredeterminada; }

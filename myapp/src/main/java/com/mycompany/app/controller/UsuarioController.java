@@ -3,13 +3,25 @@ package com.mycompany.app.controller;
 import com.mycompany.app.entity.Moneda;
 import com.mycompany.app.entity.Usuario;
 import com.mycompany.app.service.UsuarioService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
 
 @RestController // Ruta base para usuarios
 @RequestMapping("/api/usuarios")
 public class UsuarioController {
+
+    @Value("${app.uploads.dir}")
+    private String uploadsDir;
 
     @Autowired
     private UsuarioService usuarioService;
@@ -27,6 +39,48 @@ public class UsuarioController {
     public ResponseEntity<?> obtenerNotificacionesDeudas(@PathVariable("id") Long id) {
         try {
             return ResponseEntity.ok(usuarioService.obtenerNotificacionesDeudas(id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}/perfil")
+    public ResponseEntity<?> obtenerPerfil(@PathVariable("id") Long id) {
+        try {
+            return ResponseEntity.ok(usuarioService.obtenerPorId(id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @PutMapping(value = "/{id}/perfil", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> actualizarPerfil(
+            @PathVariable("id") Long id,
+            @RequestPart(value = "nombreVisible", required = false) String nombreVisible,
+            @RequestPart(value = "foto", required = false) MultipartFile foto) {
+        try {
+            String fotoUrl = null;
+
+            if (foto != null && !foto.isEmpty()) {
+                String extension = "";
+                String originalName = foto.getOriginalFilename();
+                if (originalName != null && originalName.contains(".")) {
+                    extension = originalName.substring(originalName.lastIndexOf("."));
+                }
+
+                Path carpetaPerfiles = Paths.get(uploadsDir, "perfiles")
+                        .toAbsolutePath()
+                        .normalize();
+                Files.createDirectories(carpetaPerfiles);
+
+                String nombreArchivo = UUID.randomUUID() + extension;
+                Path destino = carpetaPerfiles.resolve(nombreArchivo);
+                Files.copy(foto.getInputStream(), destino, StandardCopyOption.REPLACE_EXISTING);
+                fotoUrl = "/perfiles/" + nombreArchivo;
+            }
+
+            Usuario actualizado = usuarioService.actualizarPerfil(id, nombreVisible, fotoUrl);
+            return ResponseEntity.ok(actualizado);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }

@@ -201,6 +201,42 @@ public class UsuarioServiceTest {
     }
 
     @Test
+    public void testActualizarPerfilNombreYFoto() throws Exception {
+        Usuario usuario = new Usuario("Ana", "ana@mail.com", "123");
+        usuario.setId(1L);
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
+
+        Usuario actualizado = usuarioService.actualizarPerfil(1L, "Ana Visible", "/perfiles/foto1.png");
+
+        assertEquals("Ana Visible", actualizado.getUsername());
+        assertEquals("/perfiles/foto1.png", actualizado.getFotoPerfilUrl());
+        verify(usuarioRepository).save(usuario);
+    }
+
+    @Test
+    public void testActualizarPerfilUsuarioNoEncontrado() {
+        when(usuarioRepository.findById(404L)).thenReturn(Optional.empty());
+
+        Exception ex = assertThrows(Exception.class, () ->
+                usuarioService.actualizarPerfil(404L, "Nuevo", "/perfiles/f.png"));
+
+        assertEquals("Usuario no encontrado", ex.getMessage());
+    }
+
+    @Test
+    public void testObtenerPerfilPorIdExito() throws Exception {
+        Usuario usuario = new Usuario("Ana", "ana@mail.com", "123");
+        usuario.setId(1L);
+        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+
+        Usuario encontrado = usuarioService.obtenerPorId(1L);
+
+        assertNotNull(encontrado);
+        assertEquals(1L, encontrado.getId());
+    }
+
+    @Test
     public void testBorrarParticipantesPorGastos_ListaVacia() throws Exception {
         // Este test sirve para cubrir la rama "if (idsGasto == null || idsGasto.isEmpty())"
         // Invocamos eliminarCuenta para un usuario que no tiene gastos creados

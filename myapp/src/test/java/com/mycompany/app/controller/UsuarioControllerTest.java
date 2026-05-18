@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -196,6 +198,60 @@ public class UsuarioControllerTest {
                 .content("{\"moneda\": \"EURO\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Error: Usuario no encontrado"));
+    }
+
+    @Test
+    void testObtenerPerfilExito() throws Exception {
+        usuarioBase.setFotoPerfilUrl("/perfiles/test.png");
+        when(usuarioService.obtenerPorId(1L)).thenReturn(usuarioBase);
+
+        mockMvc.perform(get("/api/usuarios/1/perfil"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("TestUser"))
+                .andExpect(jsonPath("$.fotoPerfilUrl").value("/perfiles/test.png"));
+    }
+
+    @Test
+    void testActualizarPerfilSinFotoExito() throws Exception {
+        usuarioBase.setUsername("NuevoNombre");
+        when(usuarioService.actualizarPerfil(1L, "NuevoNombre", null)).thenReturn(usuarioBase);
+
+        MockMultipartFile nombreVisible = new MockMultipartFile(
+                "nombreVisible", "", "text/plain", "NuevoNombre".getBytes());
+
+        mockMvc.perform(multipart("/api/usuarios/1/perfil")
+                        .file(nombreVisible)
+                        .with(request -> {
+                            request.setMethod("PUT");
+                            return request;
+                        }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("NuevoNombre"));
+    }
+
+    @Test
+    void testActualizarPerfilConFotoExito() throws Exception {
+        Usuario actualizado = new Usuario();
+        actualizado.setId(1L);
+        actualizado.setUsername("TestUser");
+        actualizado.setFotoPerfilUrl("/perfiles/nueva-foto.png");
+
+        when(usuarioService.actualizarPerfil(anyLong(), anyString(), anyString())).thenReturn(actualizado);
+
+        MockMultipartFile nombreVisible = new MockMultipartFile(
+                "nombreVisible", "", "text/plain", "TestUser".getBytes());
+        MockMultipartFile foto = new MockMultipartFile(
+                "foto", "avatar.png", "image/png", "img-content".getBytes());
+
+        mockMvc.perform(multipart("/api/usuarios/1/perfil")
+                        .file(nombreVisible)
+                        .file(foto)
+                        .with(request -> {
+                            request.setMethod("PUT");
+                            return request;
+                        }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fotoPerfilUrl").value("/perfiles/nueva-foto.png"));
     }
 
         @Test

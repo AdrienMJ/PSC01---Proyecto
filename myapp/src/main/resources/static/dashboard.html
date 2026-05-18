@@ -430,6 +430,37 @@
             margin: 0;
         }
 
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .header-avatar,
+        .header-avatar-fallback {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .header-avatar {
+            object-fit: cover;
+            border: 2px solid #d8e8ff;
+            background: #fff;
+        }
+
+        .header-avatar-fallback {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #dbe9ff;
+            color: #1f4d7a;
+            font-weight: 700;
+            border: 2px solid #c6dcff;
+        }
+
         .btn-logout {
             background: var(--danger);
             white-space: nowrap;
@@ -444,6 +475,11 @@
 
         .btn-delete-account {
             background: #6c757d;
+            white-space: nowrap;
+        }
+
+        .btn-profile {
+            background: #4c6fff;
             white-space: nowrap;
         }
 
@@ -641,11 +677,16 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2>Hola, <span id="userSpan"></span></h2>
+            <div class="header-user">
+                <img id="userAvatarImg" class="header-avatar" alt="Foto de perfil" style="display:none;">
+                <span id="userAvatarFallback" class="header-avatar-fallback">?</span>
+                <h2>Hola, <span id="userSpan"></span></h2>
+            </div>
             <div class="header-actions">
                 <span class="moneda-pref-badge" onclick="abrirModalMoneda()" title="Cambiar moneda predeterminada">
                     Moneda: <strong id="monedaPrefSpan">...</strong>
                 </span>
+                <button class="btn-profile" onclick="abrirModalPerfil()">Editar perfil</button>
                 <button class="btn-delete-account" onclick="abrirModalEliminarCuenta()">Eliminar cuenta</button>
                 <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
             </div>
@@ -725,9 +766,27 @@
         </div>
     </div>
 
+    <div id="perfilModal" class="modal-overlay" onclick="cerrarModalPerfil(event)">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <h3>Editar perfil</h3>
+            <p>Actualiza tu nombre visible y tu foto de perfil.</p>
+            <label for="perfilNombreInput">Nombre visible</label>
+            <input type="text" id="perfilNombreInput" placeholder="Tu nombre para mostrar" style="width:100%;">
+            <label for="perfilFotoInput">Foto de perfil (opcional)</label>
+            <input type="file" id="perfilFotoInput" accept="image/*" style="width:100%;">
+            <p id="perfilFotoEstado" class="hint"></p>
+            <p id="perfilMsg" class="msg"></p>
+            <div class="modal-actions">
+                <button class="btn-modal-cancel" onclick="cerrarModalPerfil()">Cancelar</button>
+                <button class="btn-accent" onclick="guardarPerfil()">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const userId = localStorage.getItem('userId');
         const username = localStorage.getItem('username');
+        let perfilUsuario = null;
 
         // --- Conversión a moneda predeterminada ---
         const ENUM_A_ISO = {
@@ -765,17 +824,24 @@
         if (!userId) {
             window.location.href = 'index.html';
         } else {
-            document.getElementById('userSpan').textContent = username;
+            document.getElementById('userSpan').textContent = username || 'Usuario';
+            renderAvatarHeader(localStorage.getItem('fotoPerfilUrl'), username || 'Usuario');
         }
 
         // Ejecutar al cargar la página
         window.onload = async () => {
+            await cargarPerfilUsuario();
             await cargarMonedas();
             cargarGrupos();
             cargarResumenGastos();
             cargarNotificacionesDeuda();
             cargarMonedaPredeterminada();
             cargarContactos();
+
+            const fotoInput = document.getElementById('perfilFotoInput');
+            if (fotoInput) {
+                fotoInput.addEventListener('change', actualizarEstadoArchivoPerfil);
+            }
         };
 
         // 1. Cargar monedas desde el Enum de Java
@@ -802,9 +868,7 @@
 
         async function cargarMonedaPredeterminada() {
             try {
-                const resp = await fetch(`/api/usuarios`);
-                const usuarios = await resp.json();
-                const usuario = usuarios.find(u => String(u.id) === String(userId));
+                const usuario = perfilUsuario;
                 if (usuario && usuario.monedaPredeterminada) {
                     aplicarMonedaPredeterminada(usuario.monedaPredeterminada);
                     await cargarTasasDash(usuario.monedaPredeterminada);
@@ -994,6 +1058,44 @@
             document.getElementById('deleteAccountModal').classList.add('open');
         }
 
+        function abrirModalPerfil() {
+            const nombre = perfilUsuario?.username || localStorage.getItem('username') || '';
+            document.getElementById('perfilNombreInput').value = nombre;
+            document.getElementById('perfilFotoInput').value = '';
+            document.getElementById('perfilMsg').textContent = '';
+            const estadoFoto = document.getElementById('perfilFotoEstado');
+            if (perfilUsuario?.fotoPerfilUrl) {
+                estadoFoto.textContent = 'Foto actual guardada. Si eliges un archivo nuevo, se reemplazara.';
+            } else {
+                estadoFoto.textContent = 'No tienes foto de perfil guardada.';
+            }
+            document.getElementById('perfilModal').classList.add('open');
+        }
+
+        function actualizarEstadoArchivoPerfil() {
+            const input = document.getElementById('perfilFotoInput');
+            const estadoFoto = document.getElementById('perfilFotoEstado');
+            const archivo = input?.files?.[0];
+
+            if (!archivo) {
+                if (perfilUsuario?.fotoPerfilUrl) {
+                    estadoFoto.textContent = 'Foto actual guardada. Si eliges un archivo nuevo, se reemplazara.';
+                } else {
+                    estadoFoto.textContent = 'No tienes foto de perfil guardada.';
+                }
+                return;
+            }
+
+            const sizeMb = (archivo.size / (1024 * 1024)).toFixed(2);
+            estadoFoto.textContent = `Archivo seleccionado: ${archivo.name} (${sizeMb} MB)`;
+        }
+
+        function cerrarModalPerfil(event) {
+            if (!event || event.target.id === 'perfilModal') {
+                document.getElementById('perfilModal').classList.remove('open');
+            }
+        }
+
         function cerrarModalEliminarCuenta(event) {
             if (!event || event.target.id === 'deleteAccountModal') {
                 document.getElementById('deleteAccountModal').classList.remove('open');
@@ -1016,6 +1118,90 @@
                 window.location.href = 'index.html';
             } catch (err) {
                 alert('Error de conexión al eliminar la cuenta.');
+            }
+        }
+
+        function renderAvatarHeader(url, nombreVisible) {
+            const img = document.getElementById('userAvatarImg');
+            const fallback = document.getElementById('userAvatarFallback');
+            const inicial = (nombreVisible || 'U').trim().charAt(0).toUpperCase() || 'U';
+            fallback.textContent = inicial;
+
+            if (url) {
+                img.src = url;
+                img.style.display = 'inline-block';
+                fallback.style.display = 'none';
+                img.onerror = () => {
+                    img.style.display = 'none';
+                    fallback.style.display = 'inline-flex';
+                };
+            } else {
+                img.style.display = 'none';
+                fallback.style.display = 'inline-flex';
+            }
+        }
+
+        async function cargarPerfilUsuario() {
+            try {
+                const resp = await fetch(`/api/usuarios/${userId}/perfil`);
+                if (!resp.ok) throw new Error('No se pudo cargar el perfil');
+                perfilUsuario = await resp.json();
+
+                const nombre = perfilUsuario.username || username || 'Usuario';
+                document.getElementById('userSpan').textContent = nombre;
+                localStorage.setItem('username', nombre);
+                if (perfilUsuario.fotoPerfilUrl) {
+                    localStorage.setItem('fotoPerfilUrl', perfilUsuario.fotoPerfilUrl);
+                } else {
+                    localStorage.removeItem('fotoPerfilUrl');
+                }
+                renderAvatarHeader(perfilUsuario.fotoPerfilUrl, nombre);
+            } catch (err) {
+                console.error('Error cargando perfil:', err);
+            }
+        }
+
+        async function guardarPerfil() {
+            const msg = document.getElementById('perfilMsg');
+            const nombreVisible = document.getElementById('perfilNombreInput').value.trim();
+            const foto = document.getElementById('perfilFotoInput').files[0];
+
+            if (!nombreVisible && !foto) {
+                msg.textContent = 'Debes cambiar el nombre o seleccionar una foto.';
+                msg.style.color = 'red';
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                if (nombreVisible) formData.append('nombreVisible', nombreVisible);
+                if (foto) formData.append('foto', foto);
+
+                const resp = await fetch(`/api/usuarios/${userId}/perfil`, {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                if (!resp.ok) throw new Error(await resp.text());
+
+                perfilUsuario = await resp.json();
+                const nombre = perfilUsuario.username || username || 'Usuario';
+                localStorage.setItem('username', nombre);
+                if (perfilUsuario.fotoPerfilUrl) {
+                    localStorage.setItem('fotoPerfilUrl', perfilUsuario.fotoPerfilUrl);
+                }
+
+                document.getElementById('userSpan').textContent = nombre;
+                renderAvatarHeader(perfilUsuario.fotoPerfilUrl, nombre);
+                msg.textContent = 'Perfil actualizado correctamente.';
+                msg.style.color = 'green';
+
+                setTimeout(() => {
+                    cerrarModalPerfil();
+                }, 500);
+            } catch (err) {
+                msg.textContent = 'Error al actualizar perfil: ' + err.message;
+                msg.style.color = 'red';
             }
         }
 
