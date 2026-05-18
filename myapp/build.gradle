@@ -39,6 +39,12 @@ dependencies {
     
     // Para los tests
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // Librería para generar PDFs (HU #5)
+    implementation 'com.itextpdf:itext7-core:7.2.5'
+
+    // Librería para manejar CSV (HU #5)
+    implementation 'com.opencsv:opencsv:5.7.1'
 }
 
 test {
