@@ -14,3 +14,8 @@ UPDATE gastos SET reparto_general = TRUE WHERE reparto_general IS NULL;
 
 ALTER TABLE IF EXISTS grupos ADD COLUMN IF NOT EXISTS archivado BOOLEAN DEFAULT FALSE;
 UPDATE grupos SET archivado = FALSE WHERE archivado IS NULL;
+
+-- Pagos: columna confirmado.
+-- DEFAULT TRUE: los pagos ya existentes quedan confirmados (seguían sumando al balance antes).
+-- Los nuevos pagos se crean con confirmado=false desde Java.
+ALTER TABLE IF EXISTS pagos ADD COLUMN IF NOT EXISTS confirmado BOOLEAN DEFAULT TRUE;

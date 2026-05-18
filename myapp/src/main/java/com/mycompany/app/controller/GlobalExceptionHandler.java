@@ -14,4 +14,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                 .body("La imagen supera el tamano maximo permitido (10MB).");
     }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleAll(Exception ex) {
+        System.err.println("[GLOBAL ERROR] " + ex.getClass().getName() + ": " + ex.getMessage());
+        ex.printStackTrace();
+        return ResponseEntity.status(500).body("ERROR: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
+    }
 }

@@ -459,6 +459,67 @@
             flex-wrap: wrap;
         }
 
+        /* ── Notification bell ── */
+        .notif-bell {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            font-size: 1em;
+            flex-shrink: 0;
+            transition: background 0.13s;
+        }
+        .notif-bell:hover { background: #f0f4ff; }
+        .notif-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--danger);
+            color: white;
+            font-size: 0.68em;
+            font-weight: 800;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            border: 2px solid white;
+        }
+
+        /* ── Pending payments card ── */
+        .pago-pendiente-card {
+            background: #fff8f0;
+            border: 1px solid #f8c87a;
+            border-left: 4px solid #f59e0b;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+        }
+        .pago-pendiente-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .pago-pendiente-header strong { color: var(--text); }
+        .pago-pendiente-monto {
+            font-weight: 800;
+            color: #c2590a;
+            font-size: 1.05em;
+            white-space: nowrap;
+        }
+        .pago-pendiente-meta { font-size: 0.82em; color: var(--muted); margin-bottom: 8px; }
+        .pago-pendiente-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
         /* ── Responsive ── */
         @media (max-width: 640px) {
             body { padding: 10px; }
@@ -482,6 +543,10 @@
                 <h2>Hola, <span id="userSpan"></span></h2>
             </div>
             <div class="header-actions">
+                <button class="notif-bell" id="notifBell" onclick="irANotificaciones()" title="Notificaciones de pago">
+                    🔔
+                    <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+                </button>
                 <span class="moneda-pref-badge" onclick="abrirModalMoneda()" title="Cambiar moneda predeterminada">
                     💱 <strong id="monedaPrefSpan">...</strong>
                 </span>
@@ -540,6 +605,14 @@
 
         <!-- ── Panel: Resumen ── -->
         <div id="panelResumen" class="panel">
+
+            <!-- Pending payment confirmations (shown only when there are any) -->
+            <div id="seccionPendientesConfirmacion" style="display:none; margin-bottom:28px;">
+                <h3 style="margin:0 0 4px; color:var(--danger);">&#x1F514; Pagos pendientes de confirmación</h3>
+                <p class="hint">Alguien dice haberte enviado dinero. Confírmalo para que se actualicen los balances.</p>
+                <div id="listaPendientesConfirmacion"></div>
+            </div>
+
             <div style="margin-bottom:24px;">
                 <h3 style="margin:0 0 4px;">Mi resumen de gastos</h3>
                 <p class="hint">Lo que has gastado en cada grupo a lo largo del tiempo.</p>
@@ -703,12 +776,112 @@
             cargarNotificacionesDeuda();
             cargarMonedaPredeterminada();
             cargarContactos();
+            cargarPendientesConfirmacion();
 
             const fotoInput = document.getElementById('perfilFotoInput');
             if (fotoInput) {
                 fotoInput.addEventListener('change', actualizarEstadoArchivoPerfil);
             }
         };
+
+        function irANotificaciones() {
+            mostrarTabDash('resumen');
+            const seccion = document.getElementById('seccionPendientesConfirmacion');
+            if (seccion && seccion.style.display !== 'none') {
+                seccion.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function actualizarBadgeNotificaciones(n) {
+            const badge = document.getElementById('notifBadge');
+            if (n > 0) {
+                badge.textContent = n;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        async function cargarPendientesConfirmacion() {
+            const seccion = document.getElementById('seccionPendientesConfirmacion');
+            const lista = document.getElementById('listaPendientesConfirmacion');
+            try {
+                const resp = await fetch(`/api/pagos/receptor/${userId}/pendientes`);
+                if (!resp.ok) { seccion.style.display = 'none'; return; }
+                const pendientes = await resp.json();
+
+                actualizarBadgeNotificaciones(pendientes.length);
+
+                if (pendientes.length === 0) {
+                    seccion.style.display = 'none';
+                    return;
+                }
+
+                seccion.style.display = 'block';
+                lista.innerHTML = '';
+
+                const monedaPrefActual = localStorage.getItem('monedaPredeterminada') || 'EURO';
+
+                pendientes.forEach(p => {
+                    const fechaFmt = p.fecha
+                        ? new Date(p.fecha).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })
+                        : '';
+                    const montoConvertido = convertirDash(p.monto, p.moneda, monedaPrefActual);
+                    const sym = simDash(monedaPrefActual);
+
+                    const card = document.createElement('div');
+                    card.className = 'pago-pendiente-card';
+                    card.id = `pendiente-${p.pagoId}`;
+                    card.innerHTML = `
+                        <div class="pago-pendiente-header">
+                            <div>
+                                <strong>${p.pagadorUsername}</strong> dice haberte enviado
+                                <a href="grupo.html?id=${p.grupoId}" style="color:var(--accent); font-weight:600;">${p.grupoNombre}</a>
+                            </div>
+                            <span class="pago-pendiente-monto">${montoConvertido.toFixed(2)}${sym}</span>
+                        </div>
+                        <div class="pago-pendiente-meta">${fechaFmt}</div>
+                        <div class="pago-pendiente-actions">
+                            <button class="btn-accent" style="flex:1;" onclick="confirmarPagoDesdeDash(${p.pagoId})">✅ Confirmar recibo</button>
+                            <button class="btn-danger" style="flex:1;" onclick="rechazarPagoDesdeDash(${p.pagoId})">✖ Rechazar</button>
+                        </div>
+                    `;
+                    lista.appendChild(card);
+                });
+            } catch (e) {
+                seccion.style.display = 'none';
+            }
+        }
+
+        async function confirmarPagoDesdeDash(pagoId) {
+            try {
+                const resp = await fetch(`/api/pagos/${pagoId}/confirmar?receptorId=${userId}`, {
+                    method: 'POST'
+                });
+                if (resp.ok) {
+                    document.getElementById(`pendiente-${pagoId}`)?.remove();
+                    await cargarPendientesConfirmacion();
+                    cargarResumenGastos();
+                    cargarNotificacionesDeuda();
+                } else {
+                    alert('Error: ' + await resp.text());
+                }
+            } catch { alert('Error de conexión'); }
+        }
+
+        async function rechazarPagoDesdeDash(pagoId) {
+            if (!confirm('¿Rechazar este pago? Se eliminará permanentemente.')) return;
+            try {
+                const resp = await fetch(`/api/pagos/${pagoId}/rechazar?receptorId=${userId}`, {
+                    method: 'POST'
+                });
+                if (resp.ok) {
+                    await cargarPendientesConfirmacion();
+                } else {
+                    alert('Error: ' + await resp.text());
+                }
+            } catch { alert('Error de conexión'); }
+        }
 
         // 1. Cargar monedas desde el Enum de Java
         async function cargarMonedas() {

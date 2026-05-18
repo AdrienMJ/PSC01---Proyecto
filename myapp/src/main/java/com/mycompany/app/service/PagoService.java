@@ -1,5 +1,6 @@
 package com.mycompany.app.service;
 
+import com.mycompany.app.dto.NotificacionPagoDTO;
 import com.mycompany.app.entity.Grupo;
 import com.mycompany.app.entity.Pago;
 import com.mycompany.app.entity.Usuario;
@@ -9,6 +10,7 @@ import com.mycompany.app.repository.UsuarioRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
@@ -86,5 +88,64 @@ public class PagoService {
         List<Pago> recibidos = pagoRepository.findByReceptorId(usuarioId);
         enviados.addAll(recibidos);
         return enviados;
+    }
+
+    /**
+     * Confirms a pending payment. Only the receptor can confirm.
+     * Once confirmed the pago counts towards group balances.
+     */
+    @Transactional
+    public Pago confirmarPago(Long pagoId, Long receptorId) throws Exception {
+        Pago pago = pagoRepository.findById(pagoId)
+                .orElseThrow(() -> new Exception("Pago no encontrado"));
+        if (pago.getReceptor() == null || !pago.getReceptor().getId().equals(receptorId)) {
+            throw new Exception("Solo el receptor puede confirmar este pago");
+        }
+        if (pago.isConfirmado()) {
+            throw new Exception("El pago ya está confirmado");
+        }
+        pago.setConfirmado(true);
+        return pagoRepository.save(pago);
+    }
+
+    /**
+     * Rejects (deletes) a pending payment. Only the receptor can reject.
+     * Confirmed payments cannot be rejected.
+     */
+    @Transactional
+    public void rechazarPago(Long pagoId, Long receptorId) throws Exception {
+        Pago pago = pagoRepository.findById(pagoId)
+                .orElseThrow(() -> new Exception("Pago no encontrado"));
+        if (pago.getReceptor() == null || !pago.getReceptor().getId().equals(receptorId)) {
+            throw new Exception("Solo el receptor puede rechazar este pago");
+        }
+        if (pago.isConfirmado()) {
+            throw new Exception("No se puede rechazar un pago ya confirmado");
+        }
+        pagoRepository.delete(pago);
+    }
+
+    /**
+     * Returns all pending (unconfirmed) pagos where the given user is the receptor.
+     * Used to populate the notification centre on the dashboard.
+     */
+    public List<NotificacionPagoDTO> obtenerPendientesConfirmacion(Long receptorId) {
+        List<Pago> pendientes = pagoRepository.findByReceptorIdAndConfirmado(receptorId, false);
+        return pendientes.stream().map(p -> {
+            String moneda = (p.getGrupo() != null && p.getGrupo().getMoneda() != null)
+                    ? p.getGrupo().getMoneda().name()
+                    : "EURO";
+            String grupoNombre = p.getGrupo() != null ? p.getGrupo().getNombre() : "";
+            Long grupoId = p.getGrupo() != null ? p.getGrupo().getId() : null;
+            return new NotificacionPagoDTO(
+                    p.getId(),
+                    p.getPagador().getId(),
+                    p.getPagador().getUsername(),
+                    grupoId,
+                    grupoNombre,
+                    moneda,
+                    p.getMonto(),
+                    p.getFecha());
+        }).collect(Collectors.toList());
     }
 }

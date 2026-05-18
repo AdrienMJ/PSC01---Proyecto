@@ -12,4 +12,6 @@ public interface PagoRepository extends JpaRepository<Pago, Long> {
     List<Pago> findByPagadorId(Long usuarioId);
     List<Pago> findByReceptorId(Long usuarioId);
     List<Pago> findByGrupoIdOrderByFechaDesc(Long grupoId);
+    List<Pago> findByGrupoIdAndConfirmado(Long grupoId, boolean confirmado);
+    List<Pago> findByReceptorIdAndConfirmado(Long receptorId, boolean confirmado);
 }

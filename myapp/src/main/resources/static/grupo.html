@@ -1476,19 +1476,13 @@
                 const fecha = g.fecha ? new Date(g.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '';
                 const esPagador = g.pagador && g.pagador.id === userId;
                 
-                const gastosPagadosLocal = JSON.parse(localStorage.getItem('gastosPagados') || '[]');
-                const estaPagadoLocal = gastosPagadosLocal.includes(g.id);
-                const estaPagado = g.pagado || estaPagadoLocal;
+                const estaPagado = g.pagado;
                 
                 const estadoTexto = estaPagado
                     ? '<span style="color: #1f9f58; font-weight: bold;">✓ Pagado</span>'
                     : esPagador
                         ? 'Eres quien pagó este gasto'
-                        : `Deuda pendiente: ${fmtMoney(g.monto)}`;
-                
-                const actionButton = (!estaPagado && !esPagador)
-                    ? `<button class="btn-accent" onclick="marcarGastoPagado(${g.id})">Marcar como pagado</button>`
-                    : '';
+                        : `Deuda pendiente: ${fmtMoney(g.monto)} — registra un pago en la pestaña Pagos`;
                 
                 // Botones de admin: solo el creador del grupo puede verlos
                 // Se verifica tanto el idCreadorGrupo cargado como el usuario actual
@@ -1534,7 +1528,7 @@
                         <div>Fecha: ${fecha}</div>
                         <div>${estadoTexto}</div>
                         ${ticketHtml}
-                        <div class="row" style="margin-top: 8px;">${actionButton}${botonesAdmin}</div>
+                        <div class="row" style="margin-top: 8px;">${botonesAdmin}</div>
                         <div style="margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px;">
                             <div style="display: flex; align-items: center; gap: 8px; cursor: pointer;" onclick="toggleComentarios(${g.id})">
                                 <span style="font-size: 0.88em; font-weight: 600; color: var(--accent);">💬 Comentarios</span>
@@ -1569,31 +1563,6 @@
                 }
             }
         } catch (err) {}
-    }
-
-    async function marcarGastoPagado(gastoId) {
-        // Validar que el usuario está autenticado
-        if (!userId || isNaN(userId)) {
-            alert('Error: No has iniciado sesión correctamente. Por favor, vuelve a iniciar sesión.');
-            window.location.href = 'index.html';
-            return;
-        }
-
-        if (!confirm('¿Estás seguro de que quieres marcar este gasto como pagado?')) {
-            return;
-        }
-
-        // Guardar en localStorage que este gasto está pagado
-        const gastosPagados = JSON.parse(localStorage.getItem('gastosPagados') || '[]');
-        if (!gastosPagados.includes(gastoId)) {
-            gastosPagados.push(gastoId);
-            localStorage.setItem('gastosPagados', JSON.stringify(gastosPagados));
-        }
-        
-        // Recargar la lista de gastos para actualizar la vista
-        await cargarGastos();
-        await cargarResumen();
-        cargarGraficas(grupoId);
     }
 
     async function cargarResumen() {
@@ -1765,8 +1734,8 @@
             });
 
             if (resp.ok) {
-                msg.textContent = 'Pago registrado correctamente';
-                msg.style.color = 'green';
+                msg.textContent = '✅ Pago enviado. El receptor deberá confirmarlo para que se refleje en los balances.';
+                msg.style.color = 'var(--ok)';
                 document.getElementById('pagoMonto').value = '';
                 document.getElementById('pagoPagador').value = '';
                 document.getElementById('pagoReceptor').value = '';
@@ -1779,6 +1748,38 @@
         } catch {
             msg.textContent = 'Error de conexión';
             msg.style.color = 'red';
+        }
+    }
+
+    async function confirmarPagoEnGrupo(pagoId) {
+        try {
+            const resp = await fetch(`/api/pagos/${pagoId}/confirmar?receptorId=${userId}`, {
+                method: 'POST'
+            });
+            if (resp.ok) {
+                await cargarPagos();
+                await cargarResumen();
+            } else {
+                alert('Error: ' + await resp.text());
+            }
+        } catch {
+            alert('Error de conexión');
+        }
+    }
+
+    async function rechazarPagoEnGrupo(pagoId) {
+        if (!confirm('¿Rechazar este pago? Se eliminará permanentemente.')) return;
+        try {
+            const resp = await fetch(`/api/pagos/${pagoId}/rechazar?receptorId=${userId}`, {
+                method: 'POST'
+            });
+            if (resp.ok) {
+                await cargarPagos();
+            } else {
+                alert('Error: ' + await resp.text());
+            }
+        } catch {
+            alert('Error de conexión');
         }
     }
 
@@ -1796,7 +1797,41 @@
                 return;
             }
 
-            pagos.forEach(p => {
+            // Separate pending and confirmed
+            const pendientes = pagos.filter(p => !p.confirmado);
+            const confirmados = pagos.filter(p => p.confirmado);
+
+            if (pendientes.length > 0) {
+                cont.innerHTML += `<p class="hint" style="font-weight:700; color:var(--danger); margin-bottom:6px;">⏳ Pendientes de confirmación (${pendientes.length})</p>`;
+                pendientes.forEach(p => {
+                    const fecha = p.fecha ? new Date(p.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '';
+                    const esReceptor = String(p.receptor?.id) === String(userId);
+                    cont.innerHTML += `
+                        <div class="gasto" style="border-left: 4px solid var(--danger);">
+                            <div class="gasto-header">
+                                <span><strong>${p.pagador.username}</strong> envió a <strong>${p.receptor.username}</strong></span>
+                                <span class="monto">${fmtMoney(p.monto)}</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-top:6px;">
+                                <span style="font-size:0.82em; color:var(--muted);">${fecha}</span>
+                                <span style="background:#fff3cd; color:#856404; border:1px solid #ffc107; padding:2px 10px; border-radius:999px; font-size:0.8em; font-weight:700;">⏳ Pendiente</span>
+                            </div>
+                            ${esReceptor ? `
+                            <div style="display:flex; gap:8px; margin-top:10px;">
+                                <button class="btn-accent" style="flex:1;" onclick="confirmarPagoEnGrupo(${p.id})">✅ Confirmar recibo</button>
+                                <button class="btn-danger" style="flex:1;" onclick="rechazarPagoEnGrupo(${p.id})">✖ Rechazar</button>
+                            </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                if (confirmados.length > 0) {
+                    cont.innerHTML += `<hr style="border:none; border-top:1px solid var(--border); margin: 14px 0;">`;
+                    cont.innerHTML += `<p class="hint" style="font-weight:700; color:var(--ok); margin-bottom:6px;">✅ Confirmados</p>`;
+                }
+            }
+
+            confirmados.forEach(p => {
                 const fecha = p.fecha ? new Date(p.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '';
                 cont.innerHTML += `
                     <div class="gasto">
@@ -1804,7 +1839,7 @@
                             <span><strong>${p.pagador.username}</strong> pagó a <strong>${p.receptor.username}</strong></span>
                             <span class="monto">${fmtMoney(p.monto)}</span>
                         </div>
-                        <div>Fecha: ${fecha}</div>
+                        <div style="font-size:0.82em; color:var(--muted); margin-top:4px;">${fecha}</div>
                     </div>
                 `;
             });
@@ -2016,19 +2051,13 @@
         const fecha = gastoData.fecha ? new Date(gastoData.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '';
         const esPagador = gastoData.pagador && gastoData.pagador.id === userId;
         
-        const gastosPagadosLocal = JSON.parse(localStorage.getItem('gastosPagados') || '[]');
-        const estaPagadoLocal = gastosPagadosLocal.includes(gastoData.id);
-        const estaPagado = gastoData.pagado || estaPagadoLocal;
+        const estaPagado = gastoData.pagado;
         
         const estadoTexto = estaPagado
             ? '<span style="color: #1f9f58; font-weight: bold;">✓ Pagado</span>'
             : esPagador
                 ? 'Eres quien pagó este gasto'
-                : `Deuda pendiente: ${fmtMoney(gastoData.monto)}`;
-        
-        const actionButton = (!estaPagado && !esPagador)
-            ? `<button class="btn-accent" onclick="marcarGastoPagado(${gastoData.id})">Marcar como pagado</button>`
-            : '';
+                : `Deuda pendiente: ${fmtMoney(gastoData.monto)} — registra un pago en la pestaña Pagos`;
         
         // Botones de admin: solo el creador del grupo puede verlos
         const soyAdmin = userId && idCreadorGrupo && idCreadorGrupo > 0 && userId === idCreadorGrupo;
@@ -2053,7 +2082,7 @@
             </div>
             <div>Fecha: ${fecha}</div>
             <div>${estadoTexto}</div>
-            <div class="row" style="margin-top: 8px;">${actionButton}${botonesAdmin}</div>
+            <div class="row" style="margin-top: 8px;">${botonesAdmin}</div>
         `;
     }
 

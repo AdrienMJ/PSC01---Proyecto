@@ -1,5 +1,6 @@
 package com.mycompany.app.controller;
 
+import com.mycompany.app.dto.NotificacionPagoDTO;
 import com.mycompany.app.entity.Pago;
 import com.mycompany.app.service.PagoService;
 
@@ -8,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/pagos")
@@ -43,6 +45,47 @@ public class PagoController {
             return ResponseEntity.ok(pagos);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    /** Returns pending (unconfirmed) payments that the given user must confirm or reject. */
+    @GetMapping("/receptor/{userId}/pendientes")
+    public ResponseEntity<?> pendientesConfirmacion(@PathVariable("userId") Long userId) {
+        try {
+            List<NotificacionPagoDTO> pendientes = pagoService.obtenerPendientesConfirmacion(userId);
+            return ResponseEntity.ok(pendientes);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    /** Confirms receipt of a payment. Only the receptor can call this. */
+    @PostMapping("/{id}/confirmar")
+    public ResponseEntity<?> confirmarPago(
+            @PathVariable("id") Long id,
+            @RequestParam("receptorId") Long receptorId) {
+        try {
+            Pago pago = pagoService.confirmarPago(id, receptorId);
+            return ResponseEntity.ok(Map.of("id", pago.getId(), "confirmado", pago.isConfirmado()));
+        } catch (Throwable t) {
+            System.err.println("[ERROR confirmarPago] " + t.getClass().getName() + ": " + t.getMessage());
+            t.printStackTrace();
+            return ResponseEntity.badRequest().body("Error: " + t.getMessage());
+        }
+    }
+
+    /** Rejects (cancels) a pending payment. Only the receptor can call this. */
+    @PostMapping("/{id}/rechazar")
+    public ResponseEntity<?> rechazarPago(
+            @PathVariable("id") Long id,
+            @RequestParam("receptorId") Long receptorId) {
+        try {
+            pagoService.rechazarPago(id, receptorId);
+            return ResponseEntity.ok("Pago rechazado correctamente");
+        } catch (Throwable t) {
+            System.err.println("[ERROR rechazarPago] " + t.getClass().getName() + ": " + t.getMessage());
+            t.printStackTrace();
+            return ResponseEntity.badRequest().body("Error: " + t.getMessage());
         }
     }
 }

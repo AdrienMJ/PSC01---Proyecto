@@ -248,8 +248,8 @@ public class GastoService {
             }
         }
 
-        // Aplicar pagos realizados al balance
-        List<Pago> pagos = pagoRepository.findByGrupoId(grupoId);
+        // Solo los pagos confirmados por el receptor computan en el balance
+        List<Pago> pagos = pagoRepository.findByGrupoIdAndConfirmado(grupoId, true);
         for (Pago pago : pagos) {
             if (pago.getMonto() != null && pago.getMonto() > 0
                     && pago.getPagador() != null && pago.getReceptor() != null) {

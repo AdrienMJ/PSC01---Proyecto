@@ -15,6 +15,14 @@ public class Pago {
     private Double monto;
     private LocalDateTime fecha = LocalDateTime.now();
 
+    /**
+     * false = pendiente de confirmación por el receptor.
+     * true  = receptor ha confirmado la recepción; el pago computa en los balances.
+     * Nota: la columna usa DEFAULT TRUE para que pagos pre-existentes queden confirmados.
+     */
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean confirmado = false;
+
     @ManyToOne
     @JoinColumn(name = "pagador_id")
     private Usuario pagador; // quien paga la deuda
@@ -48,4 +56,6 @@ public class Pago {
     public void setReceptor(Usuario receptor) { this.receptor = receptor; }
     public Grupo getGrupo() { return grupo; }
     public void setGrupo(Grupo grupo) { this.grupo = grupo; }
+    public boolean isConfirmado() { return confirmado; }
+    public void setConfirmado(boolean confirmado) { this.confirmado = confirmado; }
 }
