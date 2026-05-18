@@ -15,8 +15,13 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import com.mycompany.app.dto.BalancePersonaDTO;
+import com.mycompany.app.dto.ResumenGrupoDTO;
+import com.mycompany.app.dto.TransferenciaDTO;
+import com.mycompany.app.entity.Grupo;
 import com.mycompany.app.entity.Moneda;
 import com.mycompany.app.entity.Usuario;
+import com.mycompany.app.repository.GrupoRepository;
 import com.mycompany.app.repository.UsuarioRepository;
 
 import java.util.Arrays;
@@ -31,6 +36,12 @@ public class UsuarioServiceTest {
 
     @Mock
     private JdbcTemplate jdbcTemplate;
+
+    @Mock
+    private GrupoRepository grupoRepository;
+
+    @Mock
+    private GastoService gastoService;
 
     @InjectMocks
     private UsuarioService usuarioService;
@@ -204,5 +215,50 @@ public class UsuarioServiceTest {
         contains("DELETE FROM gasto_participantes WHERE gasto_id IN"), 
         any(Object[].class) 
         );
+    }
+
+    @Test
+    public void testObtenerNotificacionesDeudasFiltraSoloLasDelUsuario() throws Exception {
+        Long idUsuario = 1L;
+        Usuario u1 = new Usuario("Luis", "luis@mail.com", "123");
+        u1.setId(idUsuario);
+        Usuario u2 = new Usuario("Ana", "ana@mail.com", "123");
+        u2.setId(2L);
+
+        Grupo grupo = new Grupo("Viaje", Moneda.EURO);
+        grupo.setId(10L);
+        grupo.getMiembros().add(u1);
+        grupo.getMiembros().add(u2);
+
+        ResumenGrupoDTO resumen = new ResumenGrupoDTO(
+                100.0,
+                Arrays.asList(
+                        new BalancePersonaDTO(1L, "Luis", -30.0, "debe"),
+                        new BalancePersonaDTO(2L, "Ana", 30.0, "positivo")
+                ),
+                Arrays.asList(
+                        new TransferenciaDTO(1L, "Luis", 2L, "Ana", 30.0),
+                        new TransferenciaDTO(3L, "Marta", 2L, "Ana", 10.0)
+                )
+        );
+
+        when(usuarioRepository.existsById(idUsuario)).thenReturn(true);
+        when(grupoRepository.findByMiembros_Id(idUsuario)).thenReturn(Arrays.asList(grupo));
+        when(gastoService.obtenerResumenGrupo(10L)).thenReturn(resumen);
+
+        var notificaciones = usuarioService.obtenerNotificacionesDeudas(idUsuario);
+
+        assertEquals(1, notificaciones.size());
+        assertEquals("Viaje", notificaciones.get(0).getGrupoNombre());
+        assertEquals("Ana", notificaciones.get(0).getAcreedorUsername());
+        assertEquals(30.0, notificaciones.get(0).getMonto(), 0.01);
+    }
+
+    @Test
+    public void testObtenerNotificacionesDeudasUsuarioNoExiste() {
+        when(usuarioRepository.existsById(99L)).thenReturn(false);
+
+        Exception ex = assertThrows(Exception.class, () -> usuarioService.obtenerNotificacionesDeudas(99L));
+        assertEquals("Usuario no encontrado", ex.getMessage());
     }
 }

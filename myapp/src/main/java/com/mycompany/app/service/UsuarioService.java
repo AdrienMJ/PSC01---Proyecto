@@ -1,14 +1,21 @@
 package com.mycompany.app.service;
 
+import com.mycompany.app.dto.NotificacionDeudaDTO;
+import com.mycompany.app.dto.ResumenGrupoDTO;
+import com.mycompany.app.dto.TransferenciaDTO;
+import com.mycompany.app.entity.Grupo;
 import com.mycompany.app.entity.Moneda;
 import com.mycompany.app.entity.Usuario;
+import com.mycompany.app.repository.GrupoRepository;
 import com.mycompany.app.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -19,6 +26,12 @@ public class UsuarioService {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private GrupoRepository grupoRepository;
+
+    @Autowired
+    private GastoService gastoService;
 
     public Usuario registrar(Usuario usuario) throws Exception {
         // Validación: ¿Ya existe el email?
@@ -118,6 +131,34 @@ public class UsuarioService {
                 .orElseThrow(() -> new Exception("Usuario no encontrado"));
         usuario.setMonedaPredeterminada(moneda);
         return usuarioRepository.save(usuario);
+    }
+
+    public List<NotificacionDeudaDTO> obtenerNotificacionesDeudas(Long idUsuario) throws Exception {
+        if (idUsuario == null || !usuarioRepository.existsById(idUsuario)) {
+            throw new Exception("Usuario no encontrado");
+        }
+
+        List<Grupo> grupos = grupoRepository.findByMiembros_Id(idUsuario);
+        List<NotificacionDeudaDTO> notificaciones = new ArrayList<>();
+
+        for (Grupo grupo : grupos) {
+            ResumenGrupoDTO resumen = gastoService.obtenerResumenGrupo(grupo.getId());
+            for (TransferenciaDTO transferencia : resumen.getSoluciones()) {
+                if (idUsuario.equals(transferencia.getDeUsuarioId())) {
+                    notificaciones.add(new NotificacionDeudaDTO(
+                            grupo.getId(),
+                            grupo.getNombre(),
+                            grupo.getMoneda().name(),
+                            transferencia.getAUsuarioId(),
+                            transferencia.getAUsername(),
+                            transferencia.getMonto()
+                    ));
+                }
+            }
+        }
+
+        notificaciones.sort(Comparator.comparing(NotificacionDeudaDTO::getMonto).reversed());
+        return notificaciones;
     }
 
     private void borrarParticipantesPorGastos(List<Long> idsGasto) {

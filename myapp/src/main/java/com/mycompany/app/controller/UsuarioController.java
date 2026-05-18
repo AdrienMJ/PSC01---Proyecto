@@ -23,6 +23,15 @@ public class UsuarioController {
         }
     }
 
+    @GetMapping("/{id}/notificaciones-deudas")
+    public ResponseEntity<?> obtenerNotificacionesDeudas(@PathVariable("id") Long id) {
+        try {
+            return ResponseEntity.ok(usuarioService.obtenerNotificacionesDeudas(id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
     @PostMapping("/register")
     public ResponseEntity<?> registrarUsuario(@RequestBody Usuario usuario) {
         try {

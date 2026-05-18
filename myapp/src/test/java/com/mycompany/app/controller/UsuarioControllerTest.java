@@ -26,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mycompany.app.dto.NotificacionDeudaDTO;
 import com.mycompany.app.entity.Moneda;
 import com.mycompany.app.entity.Usuario;
 import com.mycompany.app.service.UsuarioService;
@@ -196,4 +197,27 @@ public class UsuarioControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Error: Usuario no encontrado"));
     }
+
+        @Test
+        void testObtenerNotificacionesDeudasExito() throws Exception {
+        List<NotificacionDeudaDTO> notificaciones = Arrays.asList(
+            new NotificacionDeudaDTO(7L, "Viaje a Roma", "EURO", 2L, "Ana", 24.5)
+        );
+        when(usuarioService.obtenerNotificacionesDeudas(1L)).thenReturn(notificaciones);
+
+        mockMvc.perform(get("/api/usuarios/1/notificaciones-deudas"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].grupoNombre").value("Viaje a Roma"))
+            .andExpect(jsonPath("$[0].acreedorUsername").value("Ana"))
+            .andExpect(jsonPath("$[0].monto").value(24.5));
+        }
+
+        @Test
+        void testObtenerNotificacionesDeudasError() throws Exception {
+        when(usuarioService.obtenerNotificacionesDeudas(99L)).thenThrow(new Exception("Usuario no encontrado"));
+
+        mockMvc.perform(get("/api/usuarios/99/notificaciones-deudas"))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().string("Error: Usuario no encontrado"));
+        }
 }

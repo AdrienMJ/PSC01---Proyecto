@@ -138,6 +138,27 @@
             font-size: 0.9em;
         }
 
+        .deuda-alerta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            border: 1px solid #f0c8cc;
+            background: #fff6f7;
+        }
+
+        .deuda-alerta strong {
+            color: var(--danger);
+        }
+
+        .deuda-alerta .grupo-ref {
+            font-size: 0.84em;
+            color: var(--muted);
+        }
+
         .chips {
             display: flex;
             flex-wrap: wrap;
@@ -667,6 +688,14 @@
             <div id="resumenGastos">Cargando...</div>
         </div>
 
+        <div class="seccion">
+            <div class="row" style="justify-content: space-between;">
+                <h3 style="margin: 0;">Notificaciones de deudas</h3>
+            </div>
+            <p class="hint">Avisos de lo que tienes pendiente por pagar.</p>
+            <div id="notificacionesDeuda">Cargando...</div>
+        </div>
+
         <div style="margin-top: 24px;">
             <h3>Mis Grupos</h3>
             <ul id="listaGrupos"></ul>
@@ -744,6 +773,7 @@
             await cargarMonedas();
             cargarGrupos();
             cargarResumenGastos();
+            cargarNotificacionesDeuda();
             cargarMonedaPredeterminada();
             cargarContactos();
         };
@@ -779,6 +809,7 @@
                     aplicarMonedaPredeterminada(usuario.monedaPredeterminada);
                     await cargarTasasDash(usuario.monedaPredeterminada);
                     cargarResumenGastos();
+                    cargarNotificacionesDeuda();
                 }
             } catch (err) {
                 console.error("Error cargando moneda predeterminada:", err);
@@ -815,6 +846,9 @@
                 });
                 if (!resp.ok) throw new Error(await resp.text());
                 aplicarMonedaPredeterminada(moneda);
+                await cargarTasasDash(moneda);
+                cargarResumenGastos();
+                cargarNotificacionesDeuda();
                 cerrarModalMoneda();
             } catch (err) {
                 alert('Error al guardar la moneda: ' + err.message);
@@ -1091,6 +1125,47 @@
                 });
             } catch (err) {
                 cont.innerHTML = '<p>Error cargando resumen.</p>';
+                console.error(err);
+            }
+        }
+
+        async function cargarNotificacionesDeuda() {
+            const cont = document.getElementById('notificacionesDeuda');
+            try {
+                const resp = await fetch(`/api/usuarios/${userId}/notificaciones-deudas`);
+                if (!resp.ok) throw new Error('Error cargando deudas pendientes');
+
+                const datos = await resp.json();
+                cont.innerHTML = '';
+
+                if (datos.length === 0) {
+                    cont.innerHTML = '<p style="color: var(--ok); font-weight: 600;">No tienes deudas pendientes. Todo en orden.</p>';
+                    return;
+                }
+
+                const monedaPrefActual = localStorage.getItem('monedaPredeterminada') || 'EURO';
+                let totalPendiente = 0;
+
+                datos.forEach(d => {
+                    const montoConvertido = convertirDash(Number(d.monto || 0), d.moneda, monedaPrefActual);
+                    const sym = simDash(monedaPrefActual);
+                    totalPendiente += montoConvertido;
+
+                    cont.innerHTML += `
+                        <div class="deuda-alerta">
+                            <div>
+                                <div>Debes <strong>${montoConvertido.toFixed(2)}${sym}</strong> a <strong>${d.acreedorUsername}</strong></div>
+                                <div class="grupo-ref">Grupo: <a href="grupo.html?id=${d.grupoId}">${d.grupoNombre}</a></div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                cont.innerHTML = `
+                    <div style="margin-bottom: 8px; font-weight: 700; color: var(--danger);">Total pendiente: ${totalPendiente.toFixed(2)}${simDash(monedaPrefActual)}</div>
+                ` + cont.innerHTML;
+            } catch (err) {
+                cont.innerHTML = '<p style="color: var(--danger);">Error cargando notificaciones de deudas.</p>';
                 console.error(err);
             }
         }
