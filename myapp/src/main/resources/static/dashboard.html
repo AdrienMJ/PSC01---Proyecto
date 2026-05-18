@@ -17,418 +17,40 @@
             --neutral: #7a8596;
         }
 
+        * { box-sizing: border-box; }
+
         body {
             font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
             padding: 24px;
             margin: 0;
             background: linear-gradient(145deg, #f4f8ff 0%, #eaf7f1 100%);
             color: var(--text);
+            min-height: 100vh;
         }
+
+        h2, h3, h4 { margin-top: 0; }
 
         .container {
-            max-width: 980px;
+            max-width: 860px;
             margin: 0 auto;
             background: var(--card);
-            border-radius: 14px;
-            padding: 22px;
-            box-shadow: 0 18px 40px rgba(31, 42, 55, 0.08);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 18px 40px rgba(31, 42, 55, 0.09);
         }
 
-        .volver {
-            margin-bottom: 12px;
-            display: inline-block;
-            cursor: pointer;
-            color: var(--accent);
-            font-weight: 600;
-        }
-
-        h2, h3 {
-            margin-top: 0;
-        }
-
-        .tabs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-
-        .tab-btn {
-            background: #fff;
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 8px 14px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .tab-btn.active {
-            background: var(--accent);
-            color: #fff;
-            border-color: var(--accent);
-        }
-
-        .panel {
-            display: none;
-            margin-top: 10px;
-            padding: 14px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            background: #fbfdff;
-        }
-
-        .panel.active {
-            display: block;
-        }
-
-        .seccion {
-            margin-top: 16px;
-            padding: 14px;
-            border-radius: 12px;
-            background: var(--accent-soft);
-            border: 1px solid #d2e6ff;
-        }
-
-        .row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-        }
-
-        input,
-        select {
-            padding: 8px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background: #fff;
-            min-width: 150px;
-        }
-
-        button {
-            padding: 8px 14px;
-            background: var(--ok);
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: transform 0.14s ease, box-shadow 0.14s ease;
-        }
-
-        button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
-        }
-
-        .btn-accent {
-            background: var(--accent);
-        }
-
-        .btn-info {
-            background: #17a2b8;
-        }
-
-        .btn-danger {
-            background: var(--danger);
-        }
-
-        .msg {
-            margin-top: 6px;
-            font-size: 0.9em;
-        }
-
-        .deuda-alerta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            margin-bottom: 8px;
-            border-radius: 10px;
-            border: 1px solid #f0c8cc;
-            background: #fff6f7;
-        }
-
-        .deuda-alerta strong {
-            color: var(--danger);
-        }
-
-        .deuda-alerta .grupo-ref {
-            font-size: 0.84em;
-            color: var(--muted);
-        }
-
-        .chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .chip {
-            background: var(--accent);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 999px;
-            font-size: 0.9em;
-        }
-
-        .gasto {
-            background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
-            border: 1px solid var(--border);
-            margin-bottom: 12px;
-            padding: 12px;
-            border-radius: 12px;
-        }
-
-        .gasto-header {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .monto {
-            font-weight: 700;
-            color: var(--ok);
-        }
-
-        .tags {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin: 8px 0;
-        }
-
-        .tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            border-radius: 999px;
-            padding: 4px 10px;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-
-        .tag-categoria {
-            background: #fff8e8;
-            color: #99600f;
-            border: 1px solid #f8db8d;
-        }
-
-        .tag-emote {
-            background: #eef7ff;
-            color: #1f4d7a;
-            border: 1px solid #c6ddf7;
-        }
-
-        .tag-participantes {
-            background: #eefcf4;
-            color: #1c7c45;
-            border: 1px solid #bfe8cf;
-        }
-
-        .crear-form {
-            display: none;
-            margin-top: 12px;
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            background: #fff;
-        }
-
-        .crear-form.open {
-            display: block;
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-        }
-
-        .full {
-            grid-column: 1 / -1;
-        }
-
-        .emote-picker-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 8px;
-        }
-
-        .selected-emote-preview {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: #fff;
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            padding: 6px 10px;
-            color: var(--muted);
-            font-size: 0.9em;
-        }
-
-        .selected-emote-preview strong {
-            color: var(--text);
-        }
-
-        .emote-panel {
-            display: none;
-            padding: 10px;
-            border: 1px solid var(--border);
-            background: #fff;
-            border-radius: 10px;
-        }
-
-        .emote-panel.open {
-            display: block;
-        }
-
-        .emote-grid {
-            display: grid;
-            grid-template-columns: repeat(10, minmax(0, 1fr));
-            gap: 6px;
-        }
-
-        .emote-btn {
-            background: #fff;
-            color: #111;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 6px;
-            font-size: 1.1rem;
-            line-height: 1;
-            cursor: pointer;
-        }
-
-        .emote-btn.selected {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px rgba(31, 122, 224, 0.2);
-            background: #f1f7ff;
-        }
-
-        .participantes-box {
-            display: none;
-            padding: 10px;
-            border: 1px dashed #b4c7de;
-            border-radius: 10px;
-            background: #f8fbff;
-            max-height: 140px;
-            overflow: auto;
-        }
-
-        .participantes-box.open {
-            display: block;
-        }
-
-        .check-item {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 0.94em;
-        }
-
-        .balance-list,
-        .sol-list {
-            margin: 0;
-            padding: 0;
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .balance-card {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 14px;
-            background: var(--card);
-            border-radius: 10px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-        }
-
-        .balance-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.95em;
-            flex-shrink: 0;
-            color: white;
-        }
-
-        .balance-name {
-            flex: 1;
-            font-weight: 600;
-            font-size: 0.97em;
-        }
-
-        .balance-amount {
-            font-weight: 700;
-            font-size: 1.05em;
-        }
-
-        .estado-positivo .balance-avatar { background: var(--ok); }
-        .estado-positivo .balance-amount { color: var(--ok); }
-        .estado-debe .balance-avatar { background: var(--danger); }
-        .estado-debe .balance-amount { color: var(--danger); }
-        .estado-equilibrado .balance-avatar { background: var(--neutral); }
-        .estado-equilibrado .balance-amount { color: var(--neutral); }
-
-        .sol-card {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 16px;
-            background: var(--card);
-            border-radius: 10px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-            font-size: 0.95em;
-            flex-wrap: wrap;
-        }
-
-        .sol-de, .sol-a { font-weight: 600; }
-        .sol-a { color: var(--ok); }
-
-        .sol-monto {
-            font-weight: 700;
-            color: var(--danger);
-            background: #fdecea;
-            padding: 2px 9px;
-            border-radius: 20px;
-        }
-
-        .sol-flecha {
-            color: var(--muted);
-            font-size: 1em;
-        }
-
-        .hint {
-            color: var(--muted);
-            font-size: 0.87em;
-            margin: 2px 0 8px;
-        }
-
+        /* ── Header ── */
         .header {
             display: flex;
             align-items: center;
-            justify-content: space-between;
             gap: 12px;
-            margin-bottom: 16px;
-            padding-bottom: 10px;
+            padding: 18px 24px;
             border-bottom: 1px solid var(--border);
+            background: var(--card);
             flex-wrap: nowrap;
         }
 
-        .header h2 {
-            margin: 0;
-        }
+        .header h2 { margin: 0; font-size: 1.2em; }
 
         .header-user {
             display: flex;
@@ -439,8 +61,8 @@
 
         .header-avatar,
         .header-avatar-fallback {
-            width: 42px;
-            height: 42px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             flex-shrink: 0;
         }
@@ -448,7 +70,6 @@
         .header-avatar {
             object-fit: cover;
             border: 2px solid #d8e8ff;
-            background: #fff;
         }
 
         .header-avatar-fallback {
@@ -461,163 +82,351 @@
             border: 2px solid #c6dcff;
         }
 
-        .btn-logout {
-            background: var(--danger);
-            white-space: nowrap;
-        }
-
         .header-actions {
             display: flex;
             align-items: center;
             gap: 8px;
             margin-left: auto;
-        }
-
-        .btn-delete-account {
-            background: #6c757d;
-            white-space: nowrap;
-        }
-
-        .btn-profile {
-            background: #4c6fff;
-            white-space: nowrap;
-        }
-
-        .contacto-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 12px;
-            background: #fff;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            margin-bottom: 6px;
-        }
-
-        .contacto-nombre {
-            flex: 1;
-            font-weight: 600;
-        }
-
-        .contacto-email {
-            font-size: 0.85em;
-            color: var(--muted);
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
         .moneda-pref-badge {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             background: var(--accent-soft);
             border: 1px solid #c6ddf7;
             border-radius: 999px;
             padding: 5px 12px;
-            font-size: 0.88em;
+            font-size: 0.85em;
             font-weight: 600;
             color: var(--accent);
             cursor: pointer;
             white-space: nowrap;
         }
 
-        .moneda-pref-badge:hover {
-            background: #d6eaff;
+        .moneda-pref-badge:hover { background: #d6eaff; }
+
+        /* ── Tabs ── */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            padding: 0 20px;
+            background: #fafbff;
+            overflow-x: auto;
         }
 
-        .form-grupo {
-            margin-top: 20px;
-            padding: 15px;
-            background: #e9ecef;
+        .tab-btn {
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: var(--muted);
+            padding: 13px 18px;
+            border-radius: 0;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.92em;
+            white-space: nowrap;
+            transition: color 0.15s, border-color 0.15s;
+        }
+
+        .tab-btn:hover {
+            transform: none;
+            box-shadow: none;
+            color: var(--text);
+            background: transparent;
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+            background: transparent;
+        }
+
+        /* ── Panels ── */
+        .panel { display: none; padding: 24px; }
+        .panel.active { display: block; }
+
+        /* ── Generic buttons ── */
+        button {
+            padding: 7px 14px;
+            background: var(--ok);
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.88em;
+            font-weight: 600;
+            transition: transform 0.13s ease, box-shadow 0.13s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.13);
+        }
+
+        .btn-accent   { background: var(--accent); }
+        .btn-info     { background: #17a2b8; }
+        .btn-danger   { background: var(--danger); }
+        .btn-logout   { background: var(--danger); white-space: nowrap; }
+        .btn-delete-account { background: #6c757d; white-space: nowrap; }
+        .btn-profile  { background: #4c6fff; white-space: nowrap; }
+        .btn-modal-cancel { background: #6c757d; }
+        .btn-modal-delete { background: var(--danger); }
+
+        /* ── Inputs ── */
+        input, select {
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
+            font-family: inherit;
+            font-size: 0.91em;
+            color: var(--text);
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(31,122,224,0.1);
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .msg  { margin-top: 6px; font-size: 0.88em; }
+        .hint { color: var(--muted); font-size: 0.85em; margin: 3px 0 10px; }
+
+        /* ── Panel header row ── */
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .panel-header h3 { margin: 0; font-size: 1.05em; }
+
+        /* ── Create group inline form ── */
+        .crear-grupo-inline {
+            display: none;
+            background: #f4f8ff;
+            border: 1px solid var(--border);
             border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 18px;
         }
 
-        ul {
-            list-style: none;
-            padding: 0;
+        .crear-grupo-inline.open { display: block; }
+
+        .crear-grupo-inline .form-label {
+            font-size: 0.8em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--muted);
+            margin-bottom: 10px;
+            display: block;
         }
 
-        li {
+        /* ── Group cards ── */
+        ul { list-style: none; padding: 0; margin: 0; }
+
+        .grupo-card {
             background: #fff;
             border: 1px solid var(--border);
-            margin-bottom: 12px;
-            padding: 12px;
-            border-radius: 8px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            transition: box-shadow 0.15s, transform 0.15s;
         }
 
-        .grupo-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
+        .grupo-card:hover {
+            box-shadow: 0 4px 18px rgba(31, 42, 55, 0.1);
+            transform: translateY(-1px);
         }
+
+        .grupo-card-main {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            text-decoration: none;
+            color: inherit;
+            cursor: pointer;
+        }
+
+        .grupo-avatar {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.2em;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .grupo-info { flex: 1; min-width: 0; }
 
         .grupo-nombre {
             font-weight: 700;
+            font-size: 0.98em;
             color: var(--text);
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
             text-decoration: none;
         }
 
-        .grupo-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            align-items: center;
+        .grupo-nombre:hover { color: var(--accent); }
+
+        .grupo-meta {
+            font-size: 0.8em;
+            color: var(--muted);
+            margin-top: 2px;
         }
 
         .moneda-tag {
-            background: var(--accent);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.8em;
+            background: var(--accent-soft);
+            color: var(--accent);
+            border: 1px solid #c6ddf7;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 0.78em;
+            font-weight: 700;
+            white-space: nowrap;
         }
 
-        .mensaje-grupo {
-            margin-top: 8px;
-            font-size: 0.9em;
+        .grupo-card-footer {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-top: 1px solid #f0f4fb;
+            background: #fafbff;
+            flex-wrap: wrap;
         }
 
         .rename-form {
             display: none;
-            margin-top: 10px;
-        }
-
-        .rename-form.visible {
-            display: flex;
+            padding: 10px 16px;
+            border-top: 1px solid var(--border);
+            background: #f8fbff;
             gap: 8px;
             flex-wrap: wrap;
             align-items: center;
         }
 
-        .rename-form input {
-            flex: 1 1 220px;
-            margin: 0;
+        .rename-form.visible { display: flex; }
+        .rename-form input { flex: 1 1 190px; }
+
+        .btn-card-sm {
+            font-size: 0.8em;
+            padding: 5px 10px;
         }
 
-        .btn-rename-toggle {
-            background: #6c757d;
+        .btn-rename-toggle { background: #6c757d; }
+        .btn-rename        { background: var(--accent); }
+        .btn-cancel        { background: var(--danger); }
+        .btn-archivar-grupo   { background: #6c757d; }
+        .btn-desarchivar-grupo { background: var(--ok); }
+
+        .mensaje-grupo {
+            padding: 0 16px 8px;
+            font-size: 0.86em;
+            min-height: 0;
         }
 
-        .btn-rename {
-            background: var(--accent);
+        /* ── Archived group toggle ── */
+        .archivados-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: var(--muted);
+            font-size: 0.88em;
+            font-weight: 600;
+            padding: 10px 4px;
+            user-select: none;
+            border-radius: 8px;
         }
 
-        .btn-cancel {
-            background: var(--danger);
+        .archivados-toggle:hover { color: var(--text); }
+
+        .toggle-icon { transition: transform 0.2s; font-size: 0.75em; }
+        .archivados-toggle.open .toggle-icon { transform: rotate(90deg); }
+
+        .grupo-card.archivado {
+            opacity: 0.68;
+            background: #fafafa;
         }
 
-        .btn-archivar-grupo {
-            background: #6c757d;
-            font-size: 0.85em;
-            padding: 6px 12px;
+        /* ── Resumen / notificaciones ── */
+        .resumen-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 11px 14px;
+            margin-bottom: 8px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            gap: 12px;
         }
 
-        .btn-desarchivar-grupo {
-            background: var(--ok);
-            font-size: 0.85em;
-            padding: 6px 12px;
+        .deuda-alerta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 14px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            border: 1px solid #f0c8cc;
+            background: #fff6f7;
         }
 
+        .deuda-alerta strong { color: var(--danger); }
+        .deuda-alerta .grupo-ref { font-size: 0.83em; color: var(--muted); }
+
+        /* ── Contacts ── */
+        .contacto-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 6px;
+        }
+
+        .contacto-nombre { flex: 1; font-weight: 600; font-size: 0.94em; }
+        .contacto-email  { font-size: 0.83em; color: var(--muted); }
+
+        .form-contacto-inline {
+            display: none;
+            background: #f4f8ff;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+        }
+
+        .form-contacto-inline.open { display: block; }
+
+        /* ── Modals ── */
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -629,27 +438,19 @@
             padding: 16px;
         }
 
-        .modal-overlay.open {
-            display: flex;
-        }
+        .modal-overlay.open { display: flex; }
 
         .modal-card {
             background: #fff;
             width: min(460px, 100%);
-            border-radius: 12px;
+            border-radius: 14px;
             border: 1px solid var(--border);
-            padding: 18px;
+            padding: 20px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
         }
 
-        .modal-card h3 {
-            margin: 0 0 10px;
-        }
-
-        .modal-card p {
-            margin: 0 0 14px;
-            color: var(--muted);
-        }
+        .modal-card h3 { margin: 0 0 10px; }
+        .modal-card p  { margin: 0 0 14px; color: var(--muted); }
 
         .modal-actions {
             display: flex;
@@ -658,36 +459,22 @@
             flex-wrap: wrap;
         }
 
-        .btn-modal-cancel {
-            background: #6c757d;
-        }
-
-        .btn-modal-delete {
-            background: var(--danger);
-        }
-
-        @media (max-width: 900px) {
-            .grid-2 {
-                grid-template-columns: 1fr;
-            }
-
-            .emote-grid {
-                grid-template-columns: repeat(7, minmax(0, 1fr));
-            }
-
-            .header {
-                flex-wrap: wrap;
-            }
-
-            .header-actions {
-                width: 100%;
-                justify-content: flex-end;
-            }
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            body { padding: 10px; }
+            .container { border-radius: 12px; }
+            .header { padding: 14px 16px; flex-wrap: wrap; }
+            .header-actions { width: 100%; justify-content: flex-end; }
+            .tabs { padding: 0 10px; }
+            .tab-btn { padding: 11px 12px; font-size: 0.85em; }
+            .panel { padding: 16px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
+
+        <!-- Header -->
         <div class="header">
             <div class="header-user">
                 <img id="userAvatarImg" class="header-avatar" alt="Foto de perfil" style="display:none;">
@@ -696,71 +483,98 @@
             </div>
             <div class="header-actions">
                 <span class="moneda-pref-badge" onclick="abrirModalMoneda()" title="Cambiar moneda predeterminada">
-                    Moneda: <strong id="monedaPrefSpan">...</strong>
+                    💱 <strong id="monedaPrefSpan">...</strong>
                 </span>
                 <button class="btn-profile" onclick="abrirModalPerfil()">Editar perfil</button>
                 <button class="btn-delete-account" onclick="abrirModalEliminarCuenta()">Eliminar cuenta</button>
-                <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
+                <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
             </div>
         </div>
 
-        <div class="seccion">
-            <h3>Crear nuevo grupo</h3>
-            <div class="row">
-                <input type="text" id="nombreGrupo" placeholder="Nombre del viaje/cena">
-                <select id="monedaGrupo">
-                    <option value="">Cargando monedas...</option>
-                </select>
-                <button class="btn-accent" onclick="crearGrupo()">Crear</button>
-            </div>
-            <p id="statusMsg" class="msg"></p>
+        <!-- Tab navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" id="tabDashGrupos" onclick="mostrarTabDash('grupos')">🏠 Mis Grupos</button>
+            <button class="tab-btn" id="tabDashResumen" onclick="mostrarTabDash('resumen')">📊 Resumen</button>
+            <button class="tab-btn" id="tabDashContactos" onclick="mostrarTabDash('contactos')">👥 Contactos</button>
         </div>
 
-        <div class="seccion">
-            <div class="row" style="justify-content: space-between; margin-bottom: 8px;">
-                <h3 style="margin: 0;">Mis Contactos</h3>
-                <button class="btn-accent" onclick="toggleFormContacto()">+ Agregar contacto</button>
+        <!-- ── Panel: Mis Grupos ── -->
+        <div id="panelGrupos" class="panel active">
+            <div class="panel-header">
+                <div>
+                    <h3>Mis Grupos</h3>
+                    <p class="hint" style="margin:0;">Toca un grupo para ver sus gastos y balances.</p>
+                </div>
+                <button class="btn-accent" onclick="toggleCrearGrupoForm()">+ Nuevo grupo</button>
             </div>
-            <p class="hint">Personas con las que sueles compartir gastos. Puedes invitarlas a grupos con un clic.</p>
-            <div id="formAgregarContacto" style="display:none; margin-bottom: 10px;">
+
+            <!-- Inline create form -->
+            <div id="crearGrupoInline" class="crear-grupo-inline">
+                <span class="form-label">Nuevo grupo</span>
                 <div class="row">
-                    <input type="email" id="emailNuevoContacto" placeholder="Email del contacto">
+                    <input type="text" id="nombreGrupo" placeholder="Nombre del viaje o cena" style="flex:1; min-width:160px;">
+                    <select id="monedaGrupo" style="min-width:130px;">
+                        <option value="">Cargando...</option>
+                    </select>
+                    <button class="btn-accent" onclick="crearGrupo()">Crear</button>
+                    <button style="background:#6c757d;" onclick="toggleCrearGrupoForm()">Cancelar</button>
+                </div>
+                <p id="statusMsg" class="msg"></p>
+            </div>
+
+            <!-- Active groups list -->
+            <ul id="listaGrupos"></ul>
+
+            <!-- Archived groups accordion -->
+            <div id="seccionArchivados" style="margin-top:14px; display:none;">
+                <div class="archivados-toggle" id="toggleArchivados" onclick="toggleArchivedSection()">
+                    <span class="toggle-icon">▶</span>
+                    <span id="archivadosLabel">🗄️ Grupos Archivados</span>
+                </div>
+                <div id="archivedContent" style="display:none;">
+                    <p class="hint" style="padding-left:4px;">Grupos con todos los gastos saldados.</p>
+                    <ul id="listaGruposArchivados"></ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Panel: Resumen ── -->
+        <div id="panelResumen" class="panel">
+            <div style="margin-bottom:24px;">
+                <h3 style="margin:0 0 4px;">Mi resumen de gastos</h3>
+                <p class="hint">Lo que has gastado en cada grupo a lo largo del tiempo.</p>
+                <div id="resumenGastos">Cargando...</div>
+            </div>
+            <div>
+                <h3 style="margin:0 0 4px;">Notificaciones de deudas</h3>
+                <p class="hint">Avisos de lo que tienes pendiente por pagar.</p>
+                <div id="notificacionesDeuda">Cargando...</div>
+            </div>
+        </div>
+
+        <!-- ── Panel: Contactos ── -->
+        <div id="panelContactos" class="panel">
+            <div class="panel-header">
+                <div>
+                    <h3>Mis Contactos</h3>
+                    <p class="hint" style="margin:0;">Personas con las que sueles compartir gastos.</p>
+                </div>
+                <button class="btn-accent" onclick="toggleFormContacto()">+ Agregar</button>
+            </div>
+
+            <div id="formAgregarContacto" class="form-contacto-inline">
+                <span class="form-label">Agregar contacto</span>
+                <div class="row">
+                    <input type="email" id="emailNuevoContacto" placeholder="Email del contacto" style="flex:1;">
                     <button class="btn-info" onclick="agregarContacto()">Guardar</button>
-                    <button class="btn-danger" onclick="toggleFormContacto()">Cancelar</button>
+                    <button style="background:#6c757d;" onclick="toggleFormContacto()">Cancelar</button>
                 </div>
                 <p id="msgContacto" class="msg"></p>
             </div>
+
             <div id="listaContactos">Cargando contactos...</div>
         </div>
 
-        <div class="seccion">
-            <div class="row" style="justify-content: space-between;">
-                <h3 style="margin: 0;">Mi resumen de gastos</h3>
-            </div>
-            <p class="hint">Lo que has gastado en cada grupo a lo largo del tiempo.</p>
-            <div id="resumenGastos">Cargando...</div>
-        </div>
-
-        <div class="seccion">
-            <div class="row" style="justify-content: space-between;">
-                <h3 style="margin: 0;">Notificaciones de deudas</h3>
-            </div>
-            <p class="hint">Avisos de lo que tienes pendiente por pagar.</p>
-            <div id="notificacionesDeuda">Cargando...</div>
-        </div>
-
-        <div style="margin-top: 24px;">
-            <h3>Mis Grupos</h3>
-            <ul id="listaGrupos"></ul>
-        </div>
-
-        <div id="seccionArchivados" style="margin-top: 24px; display:none;">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                <h3 style="margin: 0; color: var(--muted);">🗄️ Grupos Archivados</h3>
-            </div>
-            <p class="hint">Grupos con todos los gastos saldados. Puedes desarchivarlo cuando quieras.</p>
-            <ul id="listaGruposArchivados"></ul>
-        </div>
     </div>
 
     <div id="monedaModal" class="modal-overlay" onclick="cerrarModalMoneda(event)">
@@ -807,6 +621,38 @@
         const userId = localStorage.getItem('userId');
         const username = localStorage.getItem('username');
         let perfilUsuario = null;
+
+        // ── UI helpers ──
+        const GRUPO_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16'];
+
+        function colorGrupo(nombre) {
+            let hash = 0;
+            for (let i = 0; i < nombre.length; i++)
+                hash = nombre.charCodeAt(i) + ((hash << 5) - hash);
+            return GRUPO_COLORS[Math.abs(hash) % GRUPO_COLORS.length];
+        }
+
+        function mostrarTabDash(tab) {
+            ['grupos','resumen','contactos'].forEach(t => {
+                const cap = t.charAt(0).toUpperCase() + t.slice(1);
+                document.getElementById('panel' + cap).classList.toggle('active', t === tab);
+                document.getElementById('tabDash' + cap).classList.toggle('active', t === tab);
+            });
+        }
+
+        function toggleCrearGrupoForm() {
+            const form = document.getElementById('crearGrupoInline');
+            form.classList.toggle('open');
+            if (form.classList.contains('open'))
+                document.getElementById('nombreGrupo').focus();
+        }
+
+        function toggleArchivedSection() {
+            const toggle = document.getElementById('toggleArchivados');
+            const content = document.getElementById('archivedContent');
+            const isOpen = toggle.classList.toggle('open');
+            content.style.display = isOpen ? 'block' : 'none';
+        }
 
         // --- Conversión a moneda predeterminada ---
         const ENUM_A_ISO = {
@@ -951,23 +797,29 @@
                 lista.innerHTML = "";
 
                 if (grupos.length === 0) {
-                    lista.innerHTML = "<li>No tienes grupos activos todavía.</li>";
+                    lista.innerHTML = `<li style="background:none;border:none;padding:20px 4px;color:var(--muted);font-size:0.93em;">No tienes grupos activos todavía. ¡Crea uno!</li>`;
                 } else {
                     grupos.forEach(g => {
                         const li = document.createElement('li');
+                        li.className = 'grupo-card';
+                        const color = colorGrupo(g.nombre);
+                        const inicial = g.nombre.trim().charAt(0).toUpperCase();
                         li.innerHTML = `
-                            <div class="grupo-header">
-                               <a href="grupo.html?id=${g.id}" class="grupo-nombre" id="nombre-texto-${g.id}">${g.nombre}</a>
+                            <div class="grupo-card-main" onclick="window.location.href='grupo.html?id=${g.id}'">
+                                <div class="grupo-avatar" style="background:${color};">${inicial}</div>
+                                <div class="grupo-info">
+                                    <span class="grupo-nombre" id="nombre-texto-${g.id}">${g.nombre}</span>
+                                </div>
                                 <span class="moneda-tag">${g.moneda}</span>
                             </div>
-                            <div class="grupo-actions">
-                                <button class="btn-rename-toggle" onclick="toggleRename(${g.id})">Cambiar nombre</button>
-                                <button class="btn-archivar-grupo" onclick="archivarGrupo(${g.id})" title="Archivar grupo (solo si todos los gastos están saldados)">🗄️ Archivar</button>
+                            <div class="grupo-card-footer">
+                                <button class="btn-rename-toggle btn-card-sm" onclick="event.stopPropagation(); toggleRename(${g.id})">✏️ Renombrar</button>
+                                <button class="btn-archivar-grupo btn-card-sm" onclick="event.stopPropagation(); archivarGrupo(${g.id})" title="Archivar (solo si todos los gastos están saldados)">🗄️ Archivar</button>
                             </div>
                             <div class="rename-form" id="rename-form-${g.id}">
                                 <input type="text" id="rename-${g.id}" placeholder="Nuevo nombre del grupo">
-                                <button class="btn-rename" onclick="renombrarGrupo(${g.id})">Guardar</button>
-                                <button class="btn-cancel" onclick="toggleRename(${g.id})">Cancelar</button>
+                                <button class="btn-rename btn-card-sm" onclick="renombrarGrupo(${g.id})">Guardar</button>
+                                <button class="btn-cancel btn-card-sm" onclick="toggleRename(${g.id})">Cancelar</button>
                             </div>
                             <div class="mensaje-grupo" id="msg-grupo-${g.id}"></div>
                         `;
@@ -978,7 +830,7 @@
                 // Cargar y mostrar grupos archivados
                 await cargarGruposArchivados();
             } catch (err) {
-                lista.innerHTML = "<li>No se pudieron cargar tus grupos.</li>";
+                lista.innerHTML = `<li style="background:none;border:none;padding:20px 4px;color:var(--danger);">No se pudieron cargar tus grupos.</li>`;
                 console.error("Error:", err);
             }
         }
@@ -1118,27 +970,37 @@
         async function cargarGruposArchivados() {
             const contenedor = document.getElementById('seccionArchivados');
             const lista = document.getElementById('listaGruposArchivados');
+            // Reset accordion state on each load
+            document.getElementById('archivedContent').style.display = 'none';
+            document.getElementById('toggleArchivados').classList.remove('open');
             try {
                 const resp = await fetch(`/api/grupos/usuario/${userId}/archivados`);
-                if (!resp.ok) return;
+                if (!resp.ok) { contenedor.style.display = 'none'; return; }
                 const grupos = await resp.json();
                 if (grupos.length === 0) {
                     contenedor.style.display = 'none';
                     return;
                 }
                 contenedor.style.display = 'block';
+                const label = document.getElementById('archivadosLabel');
+                label.textContent = `🗄️ Grupos Archivados (${grupos.length})`;
                 lista.innerHTML = '';
                 grupos.forEach(g => {
                     const li = document.createElement('li');
-                    li.style.opacity = '0.75';
+                    li.className = 'grupo-card archivado';
+                    const color = colorGrupo(g.nombre);
+                    const inicial = g.nombre.trim().charAt(0).toUpperCase();
                     li.innerHTML = `
-                        <div class="grupo-header">
-                            <a href="grupo.html?id=${g.id}" class="grupo-nombre">${g.nombre}</a>
+                        <div class="grupo-card-main" onclick="window.location.href='grupo.html?id=${g.id}'">
+                            <div class="grupo-avatar" style="background:${color};">${inicial}</div>
+                            <div class="grupo-info">
+                                <span class="grupo-nombre">${g.nombre}</span>
+                                <span class="grupo-meta">Archivado</span>
+                            </div>
                             <span class="moneda-tag">${g.moneda}</span>
-                            <span style="background:#fff3cd; color:#856404; border:1px solid #ffc107; padding:2px 8px; border-radius:10px; font-size:0.8em;">Archivado</span>
                         </div>
-                        <div class="grupo-actions">
-                            <button class="btn-desarchivar-grupo" onclick="desarchivarGrupoDesde(${g.id})">↩️ Desarchivar</button>
+                        <div class="grupo-card-footer">
+                            <button class="btn-desarchivar-grupo btn-card-sm" onclick="event.stopPropagation(); desarchivarGrupoDesde(${g.id})">↩️ Desarchivar</button>
                         </div>
                     `;
                     lista.appendChild(li);
@@ -1303,9 +1165,9 @@
 
         function toggleFormContacto() {
             const form = document.getElementById('formAgregarContacto');
-            const visible = form.style.display === 'none';
-            form.style.display = visible ? 'block' : 'none';
-            if (visible) document.getElementById('emailNuevoContacto').focus();
+            form.classList.toggle('open');
+            if (form.classList.contains('open'))
+                document.getElementById('emailNuevoContacto').focus();
             document.getElementById('msgContacto').textContent = '';
         }
 
