@@ -4,8 +4,10 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "gastos")
@@ -32,6 +34,15 @@ public class Gasto {
 
     @Column(name = "ticket_url", length = 500)
     private String ticketUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_reparto", length = 20, nullable = false)
+    private TipoReparto tipoReparto = TipoReparto.IGUAL;
+
+    /** Cuotas individuales; solo se usan cuando tipoReparto != IGUAL */
+    @OneToMany(mappedBy = "gasto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonIgnore
+    private List<GastoCuota> cuotas = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "usuario_id")
@@ -85,4 +96,17 @@ public class Gasto {
     public void setParticipantes(List<Usuario> participantes) { this.participantes = participantes; }
     public String getTicketUrl() { return ticketUrl; }
     public void setTicketUrl(String ticketUrl) { this.ticketUrl = ticketUrl; }
+    public TipoReparto getTipoReparto() { return tipoReparto; }
+    public void setTipoReparto(TipoReparto tipoReparto) { this.tipoReparto = tipoReparto; }
+    public List<GastoCuota> getCuotas() { return cuotas; }
+    public void setCuotas(List<GastoCuota> cuotas) { this.cuotas = cuotas; }
+
+    /**
+     * Campo transitorio (no se persiste) para recibir las cuotas desde el frontend.
+     * Clave: userId, Valor: monto o porcentaje según tipoReparto.
+     */
+    @Transient
+    private Map<Long, Double> cuotasMap;
+    public Map<Long, Double> getCuotasMap() { return cuotasMap; }
+    public void setCuotasMap(Map<Long, Double> cuotasMap) { this.cuotasMap = cuotasMap; }
 }

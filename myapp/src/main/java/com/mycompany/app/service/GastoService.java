@@ -13,6 +13,9 @@ import com.mycompany.app.repository.GastoRepository;
 import com.mycompany.app.repository.GrupoRepository;
 import com.mycompany.app.repository.UsuarioRepository;
 import com.mycompany.app.repository.PagoRepository;
+import com.mycompany.app.entity.GastoCuota;
+import com.mycompany.app.entity.TipoReparto;
+import com.mycompany.app.repository.GastoCuotaRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -44,6 +47,9 @@ public class GastoService {
 
     @Autowired
     private PagoRepository pagoRepository;
+
+    @Autowired
+    private GastoCuotaRepository gastoCuotaRepository;
 
     // Añadimos Moneda monedaOrigen como parámetro
     public Gasto crear(Gasto gasto, String ticketUrl) throws Exception {
@@ -143,7 +149,54 @@ public class GastoService {
             gasto.setTicketUrl(ticketUrl);
         }
 
-        return gastoRepository.save(gasto);
+        // Normalizar tipoReparto: si no viene o viene IGUAL, aseguramos que no hay cuotas parciales
+        if (gasto.getTipoReparto() == null) {
+            gasto.setTipoReparto(TipoReparto.IGUAL);
+        }
+
+        // Validar y guardar cuotas si el reparto es desigual
+        Map<Long, Double> cuotasRecibidas = gasto.getCuotasMap(); // viene del JSON del frontend
+        if (gasto.getTipoReparto() == TipoReparto.PORCENTAJE || gasto.getTipoReparto() == TipoReparto.CUOTA_FIJA) {
+            if (cuotasRecibidas == null || cuotasRecibidas.isEmpty()) {
+                throw new Exception("Debes indicar las cuotas de cada participante");
+            }
+
+            if (gasto.getTipoReparto() == TipoReparto.PORCENTAJE) {
+                double sumaPorc = cuotasRecibidas.values().stream().mapToDouble(Double::doubleValue).sum();
+                if (Math.abs(sumaPorc - 100.0) > 0.5) {
+                    throw new Exception("Los porcentajes deben sumar 100. Suma actual: " + Math.round(sumaPorc));
+                }
+                // Convertimos los % a montos reales antes de guardar
+                final double montoFinal = gasto.getMonto();
+                cuotasRecibidas.replaceAll((uid, porc) -> redondear2(montoFinal * porc / 100.0));
+            } else {
+                double sumaCuotas = cuotasRecibidas.values().stream().mapToDouble(Double::doubleValue).sum();
+                if (Math.abs(sumaCuotas - gasto.getMonto()) > 0.5) {
+                    throw new Exception("Las cuotas deben sumar el monto total (" + gasto.getMonto() + "). Suma actual: " + redondear2(sumaCuotas));
+                }
+            }
+
+            // Validar que todos los participantes tienen cuota
+            Set<Long> idsParticipantes = participantesFinales.stream().map(Usuario::getId).collect(Collectors.toSet());
+            if (!cuotasRecibidas.keySet().containsAll(idsParticipantes)) {
+                throw new Exception("Faltan cuotas para algunos participantes");
+            }
+        }
+
+        Gasto gastoGuardado = gastoRepository.save(gasto);
+
+        // Persistir las cuotas individuales si aplica
+        if ((gasto.getTipoReparto() == TipoReparto.PORCENTAJE || gasto.getTipoReparto() == TipoReparto.CUOTA_FIJA)
+                && cuotasRecibidas != null) {
+            for (Usuario participante : participantesFinales) {
+                Double montoCuota = cuotasRecibidas.get(participante.getId());
+                if (montoCuota != null) {
+                    gastoCuotaRepository.save(new GastoCuota(gastoGuardado, participante, montoCuota));
+                }
+            }
+        }
+
+        return gastoGuardado;
     }
 
     public List<Gasto> listarPorGrupo(Long grupoId, String ordenar, String direccion, String categoria) {
@@ -236,10 +289,16 @@ public class GastoService {
                 continue;
             }
 
-            double parte = gasto.getMonto() / involucrados.size();
+            // Si el gasto tiene cuotas individuales las usamos; si no, reparto igual
+            List<GastoCuota> cuotas = gastoCuotaRepository.findByGastoId(gasto.getId());
+            Map<Long, Double> cuotaMap = cuotas.stream()
+                    .collect(Collectors.toMap(c -> c.getUsuario().getId(), GastoCuota::getMonto));
+
+            double parte = gasto.getMonto() / involucrados.size(); // fallback reparto igual
             for (Usuario u : involucrados) {
                 if (balances.containsKey(u.getId())) {
-                    balances.put(u.getId(), balances.get(u.getId()) - parte);
+                    double montoCuota = cuotaMap.getOrDefault(u.getId(), parte);
+                    balances.put(u.getId(), balances.get(u.getId()) - montoCuota);
                 }
             }
 
@@ -248,8 +307,8 @@ public class GastoService {
             }
         }
 
-        // Solo los pagos confirmados por el receptor computan en el balance
-        List<Pago> pagos = pagoRepository.findByGrupoIdAndConfirmado(grupoId, true);
+        // Aplicar pagos realizados al balance
+        List<Pago> pagos = pagoRepository.findByGrupoId(grupoId);
         for (Pago pago : pagos) {
             if (pago.getMonto() != null && pago.getMonto() > 0
                     && pago.getPagador() != null && pago.getReceptor() != null) {
