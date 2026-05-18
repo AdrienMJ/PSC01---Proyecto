@@ -1434,12 +1434,40 @@
                         <div>${estadoTexto}</div>
                         ${ticketHtml}
                         <div class="row" style="margin-top: 8px;">${actionButton}${botonesAdmin}</div>
+                        <div style="margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px; cursor: pointer;" onclick="toggleComentarios(${g.id})">
+                                <span style="font-size: 0.88em; font-weight: 600; color: var(--accent);">💬 Comentarios</span>
+                                <span id="comentarioCount-${g.id}" style="font-size: 0.8em; color: var(--muted);"></span>
+                            </div>
+                            <div id="comentarios-${g.id}" style="display: none; margin-top: 8px;">
+                                <div id="listaComentarios-${g.id}" style="margin-bottom: 8px;"></div>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="text" id="inputComentario-${g.id}" placeholder="Escribe un comentario..." style="flex: 1; padding: 6px 10px; font-size: 0.88em;">
+                                    <button class="btn-accent" style="padding: 6px 12px; font-size: 0.85em;" onclick="enviarComentario(${g.id})">Enviar</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 `;
             });
+            // Cargar conteo de comentarios para cada gasto
+            gastosFiltrados.forEach(g => cargarConteoComentarios(g.id));
         } catch (err) {
             cont.innerHTML = 'Error cargando gastos';
         }
+    }
+
+    async function cargarConteoComentarios(gastoId) {
+        try {
+            const resp = await fetch(`/api/comentarios/gasto/${gastoId}`);
+            if (resp.ok) {
+                const comentarios = await resp.json();
+                const countSpan = document.getElementById(`comentarioCount-${gastoId}`);
+                if (countSpan && comentarios.length > 0) {
+                    countSpan.textContent = `(${comentarios.length})`;
+                }
+            }
+        } catch (err) {}
     }
 
     async function marcarGastoPagado(gastoId) {
@@ -2027,6 +2055,95 @@
             }
         } catch (err) {
             alert('❌ Error de conexión con el servidor.');
+        }
+    }
+
+    // ========== Funciones para Comentarios ==========
+    async function toggleComentarios(gastoId) {
+        const div = document.getElementById(`comentarios-${gastoId}`);
+        if (div.style.display === 'none') {
+            div.style.display = 'block';
+            await cargarComentarios(gastoId);
+        } else {
+            div.style.display = 'none';
+        }
+    }
+
+    async function cargarComentarios(gastoId) {
+        const cont = document.getElementById(`listaComentarios-${gastoId}`);
+        const countSpan = document.getElementById(`comentarioCount-${gastoId}`);
+        try {
+            const resp = await fetch(`/api/comentarios/gasto/${gastoId}`);
+            if (!resp.ok) throw new Error('Error cargando comentarios');
+            const comentarios = await resp.json();
+
+            countSpan.textContent = comentarios.length > 0 ? `(${comentarios.length})` : '';
+
+            if (comentarios.length === 0) {
+                cont.innerHTML = '<p style="font-size:0.85em; color:var(--muted);">No hay comentarios aún.</p>';
+                return;
+            }
+
+            cont.innerHTML = '';
+            comentarios.forEach(c => {
+                const fecha = c.fecha ? new Date(c.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) : '';
+                const esAutor = c.autor && c.autor.id === userId;
+                const btnEliminar = esAutor
+                    ? `<span style="cursor:pointer; color:var(--danger); font-size:0.8em; margin-left:8px;" onclick="eliminarComentario(${c.id}, ${gastoId})">✕</span>`
+                    : '';
+
+                cont.innerHTML += `
+                    <div style="background: #f8fbff; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 600; font-size: 0.88em;">${c.autor ? c.autor.username : 'Anónimo'}</span>
+                            <span style="font-size: 0.78em; color: var(--muted);">${fecha}${btnEliminar}</span>
+                        </div>
+                        <p style="margin: 4px 0 0; font-size: 0.9em;">${c.texto}</p>
+                    </div>
+                `;
+            });
+        } catch (err) {
+            cont.innerHTML = '<p style="color:red; font-size:0.85em;">Error cargando comentarios.</p>';
+        }
+    }
+
+    async function enviarComentario(gastoId) {
+        const input = document.getElementById(`inputComentario-${gastoId}`);
+        const texto = input.value.trim();
+        if (!texto) return;
+
+        try {
+            const resp = await fetch(`/api/comentarios/gasto/${gastoId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuarioId: userId, texto: texto })
+            });
+
+            if (resp.ok) {
+                input.value = '';
+                await cargarComentarios(gastoId);
+            } else {
+                const error = await resp.text();
+                alert('Error: ' + error);
+            }
+        } catch {
+            alert('Error de conexión');
+        }
+    }
+
+    async function eliminarComentario(comentarioId, gastoId) {
+        if (!confirm('¿Eliminar este comentario?')) return;
+        try {
+            const resp = await fetch(`/api/comentarios/${comentarioId}?usuarioId=${userId}`, {
+                method: 'DELETE'
+            });
+            if (resp.ok) {
+                await cargarComentarios(gastoId);
+            } else {
+                alert('Error al eliminar');
+            }
+        } catch {
+            alert('Error de conexión');
         }
     }
 
