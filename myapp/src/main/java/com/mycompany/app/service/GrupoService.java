@@ -56,7 +56,7 @@ public class GrupoService {
             throw new RuntimeException("Usuario no encontrado");
         }
 
-        return grupoRepository.findByMiembros_Id(idUsuario);
+        return grupoRepository.findByMiembros_IdAndArchivado(idUsuario, false);
     }
 
     @Transactional
@@ -154,6 +154,52 @@ public class GrupoService {
 
         grupo.getMiembros().removeIf(m -> m.getId().equals(idMiembro));
         grupoRepository.save(grupo);
+    }
+
+    public List<Grupo> listarGruposArchivadosPorUsuario(Long idUsuario) {
+        if (!usuarioRepository.existsById(idUsuario)) {
+            throw new RuntimeException("Usuario no encontrado");
+        }
+        return grupoRepository.findByMiembros_IdAndArchivado(idUsuario, true);
+    }
+
+    @Transactional
+    public Grupo archivarGrupo(Long idGrupo, Long idUsuario) throws Exception {
+        if (!grupoRepository.existsByIdAndMiembros_Id(idGrupo, idUsuario)) {
+            throw new RuntimeException("No tienes permiso para archivar este grupo");
+        }
+
+        Grupo grupo = grupoRepository.findById(idGrupo)
+                .orElseThrow(() -> new RuntimeException("Grupo no encontrado con ID: " + idGrupo));
+
+        if (grupo.isArchivado()) {
+            throw new RuntimeException("El grupo ya está archivado");
+        }
+
+        ResumenGrupoDTO resumen = gastoService.obtenerResumenGrupo(idGrupo);
+        boolean todosEquilibrados = resumen.getBalances().stream()
+                .allMatch(b -> Math.abs(b.getBalance()) <= 0.009);
+
+        if (!todosEquilibrados) {
+            throw new RuntimeException(
+                "No se puede archivar: todavía hay deudas pendientes entre los miembros.");
+        }
+
+        grupo.setArchivado(true);
+        return grupoRepository.save(grupo);
+    }
+
+    @Transactional
+    public Grupo desarchivarGrupo(Long idGrupo, Long idUsuario) {
+        if (!grupoRepository.existsByIdAndMiembros_Id(idGrupo, idUsuario)) {
+            throw new RuntimeException("No tienes permiso para desarchivar este grupo");
+        }
+
+        Grupo grupo = grupoRepository.findById(idGrupo)
+                .orElseThrow(() -> new RuntimeException("Grupo no encontrado con ID: " + idGrupo));
+
+        grupo.setArchivado(false);
+        return grupoRepository.save(grupo);
     }
 
     @Transactional

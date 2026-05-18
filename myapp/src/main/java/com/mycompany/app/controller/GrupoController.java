@@ -49,6 +49,7 @@ public class GrupoController {
             response.put("nombre", grupo.getNombre());
             response.put("moneda", grupo.getMoneda());
             response.put("idCreador", grupo.getIdCreador());
+            response.put("archivado", grupo.isArchivado());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
@@ -131,6 +132,37 @@ public class GrupoController {
             return ResponseEntity.ok(nuevoGrupo);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error al clonar el grupo: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/usuario/{userId}/archivados")
+    public ResponseEntity<?> listarGruposArchivados(@PathVariable("userId") Long userId) {
+        try {
+            return ResponseEntity.ok(grupoService.listarGruposArchivadosPorUsuario(userId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{grupoId}/archivar")
+    public ResponseEntity<?> archivarGrupo(@PathVariable("grupoId") Long grupoId, @RequestBody Map<String, Object> payload) {
+        try {
+            Long idUsuario = Long.valueOf(payload.get("idUsuario").toString());
+            Grupo grupo = grupoService.archivarGrupo(grupoId, idUsuario);
+            return ResponseEntity.ok(grupo);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{grupoId}/desarchivar")
+    public ResponseEntity<?> desarchivarGrupo(@PathVariable("grupoId") Long grupoId, @RequestBody Map<String, Object> payload) {
+        try {
+            Long idUsuario = Long.valueOf(payload.get("idUsuario").toString());
+            Grupo grupo = grupoService.desarchivarGrupo(grupoId, idUsuario);
+            return ResponseEntity.ok(grupo);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
 

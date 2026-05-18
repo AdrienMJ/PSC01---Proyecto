@@ -30,6 +30,9 @@ public class Grupo {
     @OneToMany(mappedBy = "grupo", cascade = CascadeType.ALL)
     private List<Gasto> gastos = new ArrayList<>();
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean archivado = false;
+
     public Grupo() {}
 
     public Grupo(String nombre, Moneda moneda) {
@@ -55,4 +58,6 @@ public class Grupo {
     public List<Usuario> getMiembros() { return miembros; }
     public void setMiembros(List<Usuario> miembros) {this.miembros = miembros;}
     public List<Gasto> getGastos() { return gastos; }
+    public boolean isArchivado() { return archivado; }
+    public void setArchivado(boolean archivado) { this.archivado = archivado; }
 }

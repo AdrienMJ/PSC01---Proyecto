@@ -433,6 +433,28 @@
             padding: 5px 10px;
         }
 
+        .btn-archivar {
+            background: #6c757d;
+        }
+
+        .btn-desarchivar {
+            background: var(--ok);
+        }
+
+        .grupo-archivado-banner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: #fff8e8;
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            margin-bottom: 14px;
+            font-size: 0.93em;
+            color: #856404;
+            font-weight: 600;
+        }
+
         @media (max-width: 900px) {
             .grid-2 {
                 grid-template-columns: 1fr;
@@ -497,6 +519,10 @@
 <div class="container">
     <span class="volver" onclick="volver()">← Volver</span>
 
+    <div id="grupoArchivadoBanner" class="grupo-archivado-banner" style="display:none;">
+        🗄️ Este grupo está archivado. Todos los gastos estaban saldados al momento de archivarlo.
+    </div>
+
     <h2 id="tituloGrupo">Grupo</h2>
 
     <div class="tabs">
@@ -518,6 +544,8 @@
                 <button class="btn-info" style="padding: 6px 10px; font-size: 0.85em;" onclick="abrirModalClonarGrupo()">Clonar</button>
                 <button class="btn-accent" style="padding: 6px 10px; font-size: 0.85em;" onclick="window.location.href='/api/export/grupo/'+grupoId+'/pdf'">PDF</button>
                 <button class="btn-info" style="padding: 6px 10px; font-size: 0.85em;" onclick="window.location.href='/api/export/grupo/'+grupoId+'/csv'">CSV</button>
+                <button id="btnArchivarGrupo" class="btn-archivar" style="padding: 6px 10px; font-size: 0.85em; display:none;" onclick="abrirModalArchivar()">🗄️ Archivar</button>
+                <button id="btnDesarchivarGrupo" class="btn-desarchivar" style="padding: 6px 10px; font-size: 0.85em; display:none;" onclick="desarchivarGrupo()">↩️ Desarchivar</button>
             </div>
             <p class="hint">Verás quién está en positivo, equilibrado o en deuda.</p>
             <ul id="listaBalances" class="balance-list"></ul>
@@ -756,6 +784,22 @@
         </div>
     </div>
 
+    <!-- Modal: confirmar archivado -->
+    <div id="modalArchivarGrupo" class="modal-overlay" onclick="cerrarModalArchivar(event)">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <h3>🗄️ Archivar grupo</h3>
+            <p>
+                Se archivará este grupo. Solo podrás archivarlo si todos los balances están saldados.<br>
+                El grupo quedará oculto en el dashboard pero podrás verlo en la sección de grupos archivados.
+            </p>
+            <p id="msgArchivar" class="msg"></p>
+            <div class="modal-actions">
+                <button class="btn-modal-cancel" onclick="cerrarModalArchivar()">Cancelar</button>
+                <button class="btn-archivar" onclick="confirmarArchivarGrupo()">Sí, archivar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="overlay" onclick="cerrarModalTasas()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.3); z-index:999;"></div>
 
     <div id="modalTasas" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:25px; border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index:1000; width: 380px;">
@@ -864,12 +908,69 @@
                 const g = await respGrupo.json();
                 monedaGrupoActual = g.moneda;
                 if (!idCreadorGrupo) idCreadorGrupo = g.idCreador;
+                actualizarBotonesArchivado(g.archivado === true);
             }
             if (respTasas.ok) {
                 tasasConv = await respTasas.json();
             }
         } catch (e) {
             console.error('Error inicializando conversión:', e);
+        }
+    }
+
+    function actualizarBotonesArchivado(archivado) {
+        document.getElementById('btnArchivarGrupo').style.display = archivado ? 'none' : 'inline-flex';
+        document.getElementById('btnDesarchivarGrupo').style.display = archivado ? 'inline-flex' : 'none';
+        document.getElementById('grupoArchivadoBanner').style.display = archivado ? 'flex' : 'none';
+    }
+
+    function abrirModalArchivar() {
+        document.getElementById('msgArchivar').textContent = '';
+        document.getElementById('modalArchivarGrupo').classList.add('open');
+    }
+
+    function cerrarModalArchivar(event) {
+        if (!event || event.target.id === 'modalArchivarGrupo') {
+            document.getElementById('modalArchivarGrupo').classList.remove('open');
+        }
+    }
+
+    async function confirmarArchivarGrupo() {
+        const msgEl = document.getElementById('msgArchivar');
+        try {
+            const resp = await fetch(`/api/grupos/${grupoId}/archivar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idUsuario: userId })
+            });
+            if (!resp.ok) {
+                const err = await resp.text();
+                msgEl.textContent = err.replace('Error: ', '');
+                msgEl.style.color = 'red';
+                return;
+            }
+            cerrarModalArchivar();
+            window.location.href = 'dashboard.html';
+        } catch (e) {
+            msgEl.textContent = 'Error de conexión.';
+            msgEl.style.color = 'red';
+        }
+    }
+
+    async function desarchivarGrupo() {
+        try {
+            const resp = await fetch(`/api/grupos/${grupoId}/desarchivar`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idUsuario: userId })
+            });
+            if (!resp.ok) {
+                alert('Error al desarchivar: ' + await resp.text());
+                return;
+            }
+            actualizarBotonesArchivado(false);
+        } catch (e) {
+            alert('Error de conexión.');
         }
     }
 

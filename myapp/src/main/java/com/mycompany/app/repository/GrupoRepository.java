@@ -12,5 +12,7 @@ public interface GrupoRepository extends JpaRepository<Grupo, Long> {
     //Solo mostrara grupos donde el usuario con id 'usuarioId' es miembro (ningun otro grupo)
     List<Grupo> findByMiembros_Id(Long usuarioId);
 
+    List<Grupo> findByMiembros_IdAndArchivado(Long usuarioId, boolean archivado);
+
     boolean existsByIdAndMiembros_Id(Long grupoId, Long usuarioId);
 }

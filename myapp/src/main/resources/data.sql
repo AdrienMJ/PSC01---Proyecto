@@ -11,3 +11,6 @@ ALTER TABLE IF EXISTS gastos ADD COLUMN IF NOT EXISTS emote VARCHAR(8);
 ALTER TABLE IF EXISTS gastos ADD COLUMN IF NOT EXISTS reparto_general BOOLEAN;
 UPDATE gastos SET categoria = 'OTROS' WHERE categoria IS NULL;
 UPDATE gastos SET reparto_general = TRUE WHERE reparto_general IS NULL;
+
+ALTER TABLE IF EXISTS grupos ADD COLUMN IF NOT EXISTS archivado BOOLEAN DEFAULT FALSE;
+UPDATE grupos SET archivado = FALSE WHERE archivado IS NULL;

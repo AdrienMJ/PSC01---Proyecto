@@ -606,6 +606,18 @@
             background: var(--danger);
         }
 
+        .btn-archivar-grupo {
+            background: #6c757d;
+            font-size: 0.85em;
+            padding: 6px 12px;
+        }
+
+        .btn-desarchivar-grupo {
+            background: var(--ok);
+            font-size: 0.85em;
+            padding: 6px 12px;
+        }
+
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -740,6 +752,14 @@
         <div style="margin-top: 24px;">
             <h3>Mis Grupos</h3>
             <ul id="listaGrupos"></ul>
+        </div>
+
+        <div id="seccionArchivados" style="margin-top: 24px; display:none;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                <h3 style="margin: 0; color: var(--muted);">🗄️ Grupos Archivados</h3>
+            </div>
+            <p class="hint">Grupos con todos los gastos saldados. Puedes desarchivarlo cuando quieras.</p>
+            <ul id="listaGruposArchivados"></ul>
         </div>
     </div>
 
@@ -931,29 +951,32 @@
                 lista.innerHTML = "";
 
                 if (grupos.length === 0) {
-                    lista.innerHTML = "<li>No tienes grupos todavía.</li>";
-                    return;
+                    lista.innerHTML = "<li>No tienes grupos activos todavía.</li>";
+                } else {
+                    grupos.forEach(g => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <div class="grupo-header">
+                               <a href="grupo.html?id=${g.id}" class="grupo-nombre" id="nombre-texto-${g.id}">${g.nombre}</a>
+                                <span class="moneda-tag">${g.moneda}</span>
+                            </div>
+                            <div class="grupo-actions">
+                                <button class="btn-rename-toggle" onclick="toggleRename(${g.id})">Cambiar nombre</button>
+                                <button class="btn-archivar-grupo" onclick="archivarGrupo(${g.id})" title="Archivar grupo (solo si todos los gastos están saldados)">🗄️ Archivar</button>
+                            </div>
+                            <div class="rename-form" id="rename-form-${g.id}">
+                                <input type="text" id="rename-${g.id}" placeholder="Nuevo nombre del grupo">
+                                <button class="btn-rename" onclick="renombrarGrupo(${g.id})">Guardar</button>
+                                <button class="btn-cancel" onclick="toggleRename(${g.id})">Cancelar</button>
+                            </div>
+                            <div class="mensaje-grupo" id="msg-grupo-${g.id}"></div>
+                        `;
+                        lista.appendChild(li);
+                    });
                 }
 
-                grupos.forEach(g => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <div class="grupo-header">
-                           <a href="grupo.html?id=${g.id}" class="grupo-nombre" id="nombre-texto-${g.id}">${g.nombre}</a>
-                            <span class="moneda-tag">${g.moneda}</span>
-                        </div>
-                        <div class="grupo-actions">
-                            <button class="btn-rename-toggle" onclick="toggleRename(${g.id})">Cambiar nombre</button>
-                        </div>
-                        <div class="rename-form" id="rename-form-${g.id}">
-                            <input type="text" id="rename-${g.id}" placeholder="Nuevo nombre del grupo">
-                            <button class="btn-rename" onclick="renombrarGrupo(${g.id})">Guardar</button>
-                            <button class="btn-cancel" onclick="toggleRename(${g.id})">Cancelar</button>
-                        </div>
-                        <div class="mensaje-grupo" id="msg-grupo-${g.id}"></div>
-                    `;
-                    lista.appendChild(li);
-                });
+                // Cargar y mostrar grupos archivados
+                await cargarGruposArchivados();
             } catch (err) {
                 lista.innerHTML = "<li>No se pudieron cargar tus grupos.</li>";
                 console.error("Error:", err);
@@ -1052,6 +1075,77 @@
         function logout() {
             localStorage.clear();
             window.location.href = 'index.html';
+        }
+
+        async function archivarGrupo(grupoId) {
+            const msgEl = document.getElementById(`msg-grupo-${grupoId}`);
+            try {
+                const resp = await fetch(`/api/grupos/${grupoId}/archivar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idUsuario: Number(userId) })
+                });
+                if (!resp.ok) {
+                    const err = await resp.text();
+                    msgEl.textContent = err.replace('Error: ', '');
+                    msgEl.style.color = 'red';
+                    return;
+                }
+                await cargarGrupos();
+            } catch (e) {
+                msgEl.textContent = 'Error de conexión.';
+                msgEl.style.color = 'red';
+            }
+        }
+
+        async function desarchivarGrupoDesde(grupoId) {
+            try {
+                const resp = await fetch(`/api/grupos/${grupoId}/desarchivar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idUsuario: Number(userId) })
+                });
+                if (!resp.ok) {
+                    alert('Error al desarchivar: ' + await resp.text());
+                    return;
+                }
+                await cargarGrupos();
+            } catch (e) {
+                alert('Error de conexión.');
+            }
+        }
+
+        async function cargarGruposArchivados() {
+            const contenedor = document.getElementById('seccionArchivados');
+            const lista = document.getElementById('listaGruposArchivados');
+            try {
+                const resp = await fetch(`/api/grupos/usuario/${userId}/archivados`);
+                if (!resp.ok) return;
+                const grupos = await resp.json();
+                if (grupos.length === 0) {
+                    contenedor.style.display = 'none';
+                    return;
+                }
+                contenedor.style.display = 'block';
+                lista.innerHTML = '';
+                grupos.forEach(g => {
+                    const li = document.createElement('li');
+                    li.style.opacity = '0.75';
+                    li.innerHTML = `
+                        <div class="grupo-header">
+                            <a href="grupo.html?id=${g.id}" class="grupo-nombre">${g.nombre}</a>
+                            <span class="moneda-tag">${g.moneda}</span>
+                            <span style="background:#fff3cd; color:#856404; border:1px solid #ffc107; padding:2px 8px; border-radius:10px; font-size:0.8em;">Archivado</span>
+                        </div>
+                        <div class="grupo-actions">
+                            <button class="btn-desarchivar-grupo" onclick="desarchivarGrupoDesde(${g.id})">↩️ Desarchivar</button>
+                        </div>
+                    `;
+                    lista.appendChild(li);
+                });
+            } catch (e) {
+                contenedor.style.display = 'none';
+            }
         }
 
         function abrirModalEliminarCuenta() {
