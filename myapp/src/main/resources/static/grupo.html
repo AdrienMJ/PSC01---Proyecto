@@ -508,14 +508,16 @@
 
     <div id="tabResumen" class="panel active">
         <div class="seccion">
-            <div class="row" style="justify-content: space-between;">
-                <h3 style="margin: 0;">Balance del grupo</h3>
-                    <div class="seccion" style="background: white; border: 1px solid var(--border); display: flex; justify-content: space-between;">
-                        <strong>Gasto Total del Grupo:</strong>
-                        <span id="txtTotalGastado" style="color: var(--accent); font-weight: bold;">0.00€</span>
-                    </div>
-                <button class="btn-accent" onclick="cargarResumen()">Actualizar resumen</button>
-                <button class="btn-info" onclick="abrirModalClonarGrupo()">Clonar grupo</button>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <h3 style="margin: 0; white-space: nowrap;">Balance del grupo</h3>
+                <span style="background: white; border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; font-size: 0.88em; white-space: nowrap;">
+                    <strong>Total:</strong>
+                    <span id="txtTotalGastado" style="color: var(--accent); font-weight: bold;">0.00€</span>
+                </span>
+                <button class="btn-accent" style="padding: 6px 10px; font-size: 0.85em;" onclick="cargarResumen()">Actualizar</button>
+                <button class="btn-info" style="padding: 6px 10px; font-size: 0.85em;" onclick="abrirModalClonarGrupo()">Clonar</button>
+                <button class="btn-accent" style="padding: 6px 10px; font-size: 0.85em;" onclick="window.location.href='/api/export/grupo/'+grupoId+'/pdf'">PDF</button>
+                <button class="btn-info" style="padding: 6px 10px; font-size: 0.85em;" onclick="window.location.href='/api/export/grupo/'+grupoId+'/csv'">CSV</button>
             </div>
             <p class="hint">Verás quién está en positivo, equilibrado o en deuda.</p>
             <ul id="listaBalances" class="balance-list"></ul>
