@@ -23,3 +23,5 @@ EXTRACT_STATIC         = YES
 GENERATE_HTML          = YES
 HTML_OUTPUT            = html
 GENERATE_LATEX         = NO
+
+USE_MDFILE_AS_MAINPAGE = README.md
