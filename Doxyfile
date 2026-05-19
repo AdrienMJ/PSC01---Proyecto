@@ -10,9 +10,9 @@ OUTPUT_LANGUAGE        = Spanish
 OPTIMIZE_OUTPUT_JAVA   = YES
 
 # Rutas de entrada del código fuente
-INPUT                  = myapp/src/main/java
+INPUT                  = myapp/src/main/java README.md
 RECURSIVE              = YES
-FILE_PATTERNS          = *.java
+FILE_PATTERNS          = *.java *.md
 
 # Modo de extracción (documenta todo, aunque no tenga comentarios formales todavía)
 EXTRACT_ALL            = YES
