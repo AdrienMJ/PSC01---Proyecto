@@ -296,4 +296,88 @@ public class GrupoControllerTest {
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.id").value(2L))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.nombre").value("Grupo Nuevo"));
     }
+
+    // ==========================================
+    // GET /api/grupos/usuario/{userId}/archivados
+    // ==========================================
+    @Test
+    void testListarGruposArchivadosExito() throws Exception {
+        Grupo grupoArchivado = new Grupo("Viaje Viejo", Moneda.EURO);
+        grupoArchivado.setId(5L);
+        grupoArchivado.setArchivado(true);
+        when(grupoService.listarGruposArchivadosPorUsuario(1L)).thenReturn(Arrays.asList(grupoArchivado));
+
+        mockMvc.perform(get("/api/grupos/usuario/1/archivados"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nombre").value("Viaje Viejo"))
+                .andExpect(jsonPath("$[0].archivado").value(true));
+    }
+
+    @Test
+    void testListarGruposArchivadosError() throws Exception {
+        when(grupoService.listarGruposArchivadosPorUsuario(99L))
+                .thenThrow(new RuntimeException("Usuario no encontrado"));
+
+        mockMvc.perform(get("/api/grupos/usuario/99/archivados"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Error: Usuario no encontrado"));
+    }
+
+    // ==========================================
+    // POST /api/grupos/{grupoId}/archivar
+    // ==========================================
+    @Test
+    void testArchivarGrupoExito() throws Exception {
+        Grupo grupoArchivado = new Grupo("Viaje a Japón", Moneda.YEN);
+        grupoArchivado.setId(10L);
+        grupoArchivado.setArchivado(true);
+        when(grupoService.archivarGrupo(eq(10L), eq(1L))).thenReturn(grupoArchivado);
+
+        mockMvc.perform(post("/api/grupos/10/archivar")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"idUsuario\":1}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.archivado").value(true));
+    }
+
+    @Test
+    void testArchivarGrupoError() throws Exception {
+        when(grupoService.archivarGrupo(eq(10L), eq(1L)))
+                .thenThrow(new RuntimeException("No se puede archivar: todavía hay deudas pendientes entre los miembros."));
+
+        mockMvc.perform(post("/api/grupos/10/archivar")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"idUsuario\":1}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Error: No se puede archivar: todavía hay deudas pendientes entre los miembros."));
+    }
+
+    // ==========================================
+    // POST /api/grupos/{grupoId}/desarchivar
+    // ==========================================
+    @Test
+    void testDesarchivarGrupoExito() throws Exception {
+        Grupo grupoDesarchivado = new Grupo("Viaje a Japón", Moneda.YEN);
+        grupoDesarchivado.setId(10L);
+        grupoDesarchivado.setArchivado(false);
+        when(grupoService.desarchivarGrupo(eq(10L), eq(1L))).thenReturn(grupoDesarchivado);
+
+        mockMvc.perform(post("/api/grupos/10/desarchivar")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"idUsuario\":1}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.archivado").value(false));
+    }
+
+    @Test
+    void testDesarchivarGrupoError() throws Exception {
+        when(grupoService.desarchivarGrupo(eq(10L), eq(1L)))
+                .thenThrow(new RuntimeException("No tienes permiso para desarchivar este grupo"));
+
+        mockMvc.perform(post("/api/grupos/10/desarchivar")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"idUsuario\":1}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Error: No tienes permiso para desarchivar este grupo"));
+    }
 }

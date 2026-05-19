@@ -89,7 +89,7 @@ public class GrupoServiceTest {
     @Test
     public void testListarGruposExito() {
         when(usuarioRepository.existsById(1L)).thenReturn(true);
-        when(grupoRepository.findByMiembros_Id(1L)).thenReturn(Arrays.asList(grupo));
+        when(grupoRepository.findByMiembros_IdAndArchivado(1L, false)).thenReturn(Arrays.asList(grupo));
         
         List<Grupo> lista = grupoService.listarGruposPorUsuario(1L);
         
@@ -315,5 +315,126 @@ public class GrupoServiceTest {
         assertEquals(2, clonado.getMiembros().size());
         assertTrue(clonado.getGastos().isEmpty()); // Garantiza que inicia vacío
         verify(grupoRepository).save(clonado);
+    }
+
+    // --- TESTS: listarGruposArchivadosPorUsuario ---
+
+    @Test
+    public void testListarGruposArchivadosExito() {
+        grupo.setArchivado(true);
+        when(usuarioRepository.existsById(1L)).thenReturn(true);
+        when(grupoRepository.findByMiembros_IdAndArchivado(1L, true)).thenReturn(Arrays.asList(grupo));
+
+        List<Grupo> lista = grupoService.listarGruposArchivadosPorUsuario(1L);
+
+        assertEquals(1, lista.size());
+        assertTrue(lista.get(0).isArchivado());
+    }
+
+    @Test
+    public void testListarGruposArchivados_UsuarioNoEncontrado() {
+        when(usuarioRepository.existsById(99L)).thenReturn(false);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+            grupoService.listarGruposArchivadosPorUsuario(99L)
+        );
+        assertEquals("Usuario no encontrado", ex.getMessage());
+    }
+
+    // --- TESTS: archivarGrupo ---
+
+    @Test
+    public void testArchivarGrupoExito() throws Exception {
+        BalancePersonaDTO b1 = new BalancePersonaDTO(1L, "Admin", 0.0, "Saldado");
+        BalancePersonaDTO b2 = new BalancePersonaDTO(2L, "Miembro", 0.0, "Saldado");
+        ResumenGrupoDTO resumen = new ResumenGrupoDTO(0.0, Arrays.asList(b1, b2), Collections.emptyList());
+
+        when(grupoRepository.existsByIdAndMiembros_Id(10L, 1L)).thenReturn(true);
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoService.obtenerResumenGrupo(10L)).thenReturn(resumen);
+        when(grupoRepository.save(any(Grupo.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Grupo resultado = grupoService.archivarGrupo(10L, 1L);
+
+        assertTrue(resultado.isArchivado());
+        verify(grupoRepository).save(grupo);
+    }
+
+    @Test
+    public void testArchivarGrupo_SinPermisos() {
+        when(grupoRepository.existsByIdAndMiembros_Id(10L, 99L)).thenReturn(false);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+            grupoService.archivarGrupo(10L, 99L)
+        );
+        assertEquals("No tienes permiso para archivar este grupo", ex.getMessage());
+    }
+
+    @Test
+    public void testArchivarGrupo_GrupoNoEncontrado() {
+        when(grupoRepository.existsByIdAndMiembros_Id(10L, 1L)).thenReturn(true);
+        when(grupoRepository.findById(10L)).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> grupoService.archivarGrupo(10L, 1L));
+    }
+
+    @Test
+    public void testArchivarGrupo_YaArchivado() {
+        grupo.setArchivado(true);
+        when(grupoRepository.existsByIdAndMiembros_Id(10L, 1L)).thenReturn(true);
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+            grupoService.archivarGrupo(10L, 1L)
+        );
+        assertEquals("El grupo ya está archivado", ex.getMessage());
+    }
+
+    @Test
+    public void testArchivarGrupo_ConDeudasPendientes() throws Exception {
+        BalancePersonaDTO deudor = new BalancePersonaDTO(2L, "Miembro", -30.0, "Deudor");
+        ResumenGrupoDTO resumen = new ResumenGrupoDTO(100.0, Arrays.asList(deudor), Collections.emptyList());
+
+        when(grupoRepository.existsByIdAndMiembros_Id(10L, 1L)).thenReturn(true);
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(gastoService.obtenerResumenGrupo(10L)).thenReturn(resumen);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+            grupoService.archivarGrupo(10L, 1L)
+        );
+        assertTrue(ex.getMessage().contains("deudas pendientes"));
+    }
+
+    // --- TESTS: desarchivarGrupo ---
+
+    @Test
+    public void testDesarchivarGrupoExito() {
+        grupo.setArchivado(true);
+        when(grupoRepository.existsByIdAndMiembros_Id(10L, 1L)).thenReturn(true);
+        when(grupoRepository.findById(10L)).thenReturn(Optional.of(grupo));
+        when(grupoRepository.save(any(Grupo.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Grupo resultado = grupoService.desarchivarGrupo(10L, 1L);
+
+        assertFalse(resultado.isArchivado());
+        verify(grupoRepository).save(grupo);
+    }
+
+    @Test
+    public void testDesarchivarGrupo_SinPermisos() {
+        when(grupoRepository.existsByIdAndMiembros_Id(10L, 99L)).thenReturn(false);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+            grupoService.desarchivarGrupo(10L, 99L)
+        );
+        assertEquals("No tienes permiso para desarchivar este grupo", ex.getMessage());
+    }
+
+    @Test
+    public void testDesarchivarGrupo_GrupoNoEncontrado() {
+        when(grupoRepository.existsByIdAndMiembros_Id(10L, 1L)).thenReturn(true);
+        when(grupoRepository.findById(10L)).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> grupoService.desarchivarGrupo(10L, 1L));
     }
 }

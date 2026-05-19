@@ -3,6 +3,7 @@ package com.mycompany.app.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -22,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mycompany.app.dto.NotificacionPagoDTO;
 import com.mycompany.app.entity.Pago;
 import com.mycompany.app.service.PagoService;
 
@@ -115,5 +117,88 @@ public class PagoControllerTest {
         mockMvc.perform(get("/api/pagos/usuario/99"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Error: Usuario no encontrado"));
+    }
+
+    // ==========================================
+    // GET /api/pagos/receptor/{userId}/pendientes
+    // ==========================================
+    @Test
+    void testPendientesConfirmacionExito() throws Exception {
+        NotificacionPagoDTO dto = new NotificacionPagoDTO(1L, 10L, "Alice", 5L, "Grupo Test", "EURO", 30.0, null);
+        when(pagoService.obtenerPendientesConfirmacion(2L)).thenReturn(Arrays.asList(dto));
+
+        mockMvc.perform(get("/api/pagos/receptor/2/pendientes"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].monto").value(30.0))
+                .andExpect(jsonPath("$[0].pagadorUsername").value("Alice"));
+    }
+
+    @Test
+    void testPendientesConfirmacionError() throws Exception {
+        when(pagoService.obtenerPendientesConfirmacion(anyLong()))
+                .thenThrow(new RuntimeException("Error al obtener pendientes"));
+
+        mockMvc.perform(get("/api/pagos/receptor/99/pendientes"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Error: Error al obtener pendientes"));
+    }
+
+    // ==========================================
+    // POST /api/pagos/{id}/confirmar?receptorId=X
+    // ==========================================
+    @Test
+    void testConfirmarPagoExito() throws Exception {
+        Pago pagoConfirmado = new Pago();
+        pagoConfirmado.setConfirmado(true);
+        when(pagoService.confirmarPago(eq(1L), eq(2L))).thenReturn(pagoConfirmado);
+
+        mockMvc.perform(post("/api/pagos/1/confirmar")
+                .param("receptorId", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.confirmado").value(true));
+    }
+
+    @Test
+    void testConfirmarPagoReceptorIncorrecto() throws Exception {
+        when(pagoService.confirmarPago(anyLong(), anyLong()))
+                .thenThrow(new Exception("Solo el receptor puede confirmar este pago"));
+
+        mockMvc.perform(post("/api/pagos/1/confirmar")
+                .param("receptorId", "99"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Error: Solo el receptor puede confirmar este pago"));
+    }
+
+    @Test
+    void testConfirmarPagoNoEncontrado() throws Exception {
+        when(pagoService.confirmarPago(anyLong(), anyLong()))
+                .thenThrow(new Exception("Pago no encontrado"));
+
+        mockMvc.perform(post("/api/pagos/99/confirmar")
+                .param("receptorId", "2"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Error: Pago no encontrado"));
+    }
+
+    // ==========================================
+    // POST /api/pagos/{id}/rechazar?receptorId=X
+    // ==========================================
+    @Test
+    void testRechazarPagoExito() throws Exception {
+        mockMvc.perform(post("/api/pagos/1/rechazar")
+                .param("receptorId", "2"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Pago rechazado correctamente"));
+    }
+
+    @Test
+    void testRechazarPagoYaConfirmado() throws Exception {
+        doThrow(new Exception("No se puede rechazar un pago ya confirmado"))
+                .when(pagoService).rechazarPago(eq(1L), eq(2L));
+
+        mockMvc.perform(post("/api/pagos/1/rechazar")
+                .param("receptorId", "2"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Error: No se puede rechazar un pago ya confirmado"));
     }
 }

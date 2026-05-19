@@ -10,6 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import com.mycompany.app.dto.NotificacionPagoDTO;
 import com.mycompany.app.entity.Grupo;
 import com.mycompany.app.entity.Pago;
 import com.mycompany.app.entity.Usuario;
@@ -19,6 +20,7 @@ import com.mycompany.app.repository.UsuarioRepository;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -172,6 +174,102 @@ public class PagoServiceTest {
     }
 
     // --- SECCIÓN: obtenerPagosPorUsuario ---
+
+    // --- SECCIÓN: confirmarPago ---
+
+    @Test
+    public void testConfirmarPagoExito() throws Exception {
+        pagoBase.setConfirmado(false);
+        when(pagoRepository.findById(1L)).thenReturn(Optional.of(pagoBase));
+        when(pagoRepository.save(any(Pago.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Pago resultado = pagoService.confirmarPago(1L, 2L);
+
+        assertTrue(resultado.isConfirmado());
+        verify(pagoRepository).save(pagoBase);
+    }
+
+    @Test
+    public void testConfirmarPago_NoEncontrado() {
+        when(pagoRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(Exception.class, () -> pagoService.confirmarPago(99L, 2L));
+    }
+
+    @Test
+    public void testConfirmarPago_ReceptorIncorrecto() {
+        pagoBase.setConfirmado(false);
+        when(pagoRepository.findById(1L)).thenReturn(Optional.of(pagoBase));
+
+        Exception ex = assertThrows(Exception.class, () -> pagoService.confirmarPago(1L, 99L));
+        assertEquals("Solo el receptor puede confirmar este pago", ex.getMessage());
+    }
+
+    @Test
+    public void testConfirmarPago_YaConfirmado() {
+        pagoBase.setConfirmado(true);
+        when(pagoRepository.findById(1L)).thenReturn(Optional.of(pagoBase));
+
+        Exception ex = assertThrows(Exception.class, () -> pagoService.confirmarPago(1L, 2L));
+        assertEquals("El pago ya está confirmado", ex.getMessage());
+    }
+
+    // --- SECCIÓN: rechazarPago ---
+
+    @Test
+    public void testRechazarPagoExito() throws Exception {
+        pagoBase.setConfirmado(false);
+        when(pagoRepository.findById(1L)).thenReturn(Optional.of(pagoBase));
+
+        pagoService.rechazarPago(1L, 2L);
+
+        verify(pagoRepository).delete(pagoBase);
+    }
+
+    @Test
+    public void testRechazarPago_NoEncontrado() {
+        when(pagoRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(Exception.class, () -> pagoService.rechazarPago(99L, 2L));
+    }
+
+    @Test
+    public void testRechazarPago_ReceptorIncorrecto() {
+        pagoBase.setConfirmado(false);
+        when(pagoRepository.findById(1L)).thenReturn(Optional.of(pagoBase));
+
+        Exception ex = assertThrows(Exception.class, () -> pagoService.rechazarPago(1L, 99L));
+        assertEquals("Solo el receptor puede rechazar este pago", ex.getMessage());
+    }
+
+    @Test
+    public void testRechazarPago_YaConfirmado() {
+        pagoBase.setConfirmado(true);
+        when(pagoRepository.findById(1L)).thenReturn(Optional.of(pagoBase));
+
+        Exception ex = assertThrows(Exception.class, () -> pagoService.rechazarPago(1L, 2L));
+        assertEquals("No se puede rechazar un pago ya confirmado", ex.getMessage());
+    }
+
+    // --- SECCIÓN: obtenerPendientesConfirmacion ---
+
+    @Test
+    public void testObtenerPendientesConfirmacion_ConResultados() {
+        when(pagoRepository.findByReceptorIdAndConfirmado(2L, false)).thenReturn(Arrays.asList(pagoBase));
+
+        List<NotificacionPagoDTO> pendientes = pagoService.obtenerPendientesConfirmacion(2L);
+
+        assertEquals(1, pendientes.size());
+        assertEquals(50.0, pendientes.get(0).getMonto());
+        assertEquals("Pagador", pendientes.get(0).getPagadorUsername());
+    }
+
+    @Test
+    public void testObtenerPendientesConfirmacion_SinResultados() {
+        when(pagoRepository.findByReceptorIdAndConfirmado(2L, false)).thenReturn(Collections.emptyList());
+
+        List<NotificacionPagoDTO> pendientes = pagoService.obtenerPendientesConfirmacion(2L);
+
+        assertTrue(pendientes.isEmpty());
+    }
 
     @Test
     public void testObtenerPagosPorUsuario() {

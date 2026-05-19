@@ -66,7 +66,10 @@ public class PagoController {
             @RequestParam("receptorId") Long receptorId) {
         try {
             Pago pago = pagoService.confirmarPago(id, receptorId);
-            return ResponseEntity.ok(Map.of("id", pago.getId(), "confirmado", pago.isConfirmado()));
+            Map<String, Object> result = new java.util.HashMap<>();
+            result.put("id", pago.getId());
+            result.put("confirmado", pago.isConfirmado());
+            return ResponseEntity.ok(result);
         } catch (Throwable t) {
             System.err.println("[ERROR confirmarPago] " + t.getClass().getName() + ": " + t.getMessage());
             t.printStackTrace();
