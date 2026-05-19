@@ -1,0 +1,25 @@
+# Configuration for Doxygen (Sprint 3)
+PROJECT_NAME           = "Clon Tricount - PSC01"
+PROJECT_NUMBER         = "1.0"
+OUTPUT_DIRECTORY       = docs/doxygen
+
+# Idioma de los reportes
+OUTPUT_LANGUAGE        = Spanish
+
+# ¡CLAVE PARA JAVA! Optimiza la salida para código Java
+OPTIMIZE_OUTPUT_JAVA   = YES
+
+# Rutas de entrada del código fuente
+INPUT                  = myapp/src/main/java
+RECURSIVE              = YES
+FILE_PATTERNS          = *.java
+
+# Modo de extracción (documenta todo, aunque no tenga comentarios formales todavía)
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+
+# Formato de salida (Solo queremos HTML para GitHub Pages, no PDFs en LaTeX)
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_LATEX         = NO

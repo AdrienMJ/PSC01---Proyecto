@@ -18,3 +18,5 @@ myapp-data/
 .project
 .settings/
 .vscode/
+
+docs/doxygen/
