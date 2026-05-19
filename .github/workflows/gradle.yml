@@ -1,11 +1,4 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-# This workflow will build a Java project with Gradle and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-gradle
-
-name: Java CI with Gradle
+name: Java CI with Gradle and Doxygen Deployment
 
 on:
   push:
@@ -13,9 +6,18 @@ on:
   pull_request:
     branches: [ "main" ]
 
-jobs:
-  build:
+permissions:
+  contents: write   # Permiso para registrar el grafo de dependencias
+  pages: write      # Permiso para poder actualizar la web de GitHub Pages
+  id-token: write
 
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # 1. Tarea original: Compilación y verificación general
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -28,33 +30,17 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
 
-    # Configure Gradle for optimal use in GitHub Actions, including caching of downloaded dependencies.
-    # See: https://github.com/gradle/actions/blob/main/setup-gradle/README.md
     - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
+      uses: gradle/actions/setup-gradle@v4
       
     - name: Make gradlew executable
       run: chmod +x gradlew
 
     - name: Build with Gradle
       run: ./gradlew build
-      
-    - name: Build with Gradle Wrapper
-      run: ./gradlew build
 
-    # NOTE: The Gradle Wrapper is the default and recommended way to run Gradle (https://docs.gradle.org/current/userguide/gradle_wrapper.html).
-    # If your project does not have the Gradle Wrapper configured, you can use the following configuration to run Gradle with a specified version.
-    #
-    # - name: Setup Gradle
-    #   uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
-    #   with:
-    #     gradle-version: '8.9'
-    #
-    # - name: Build with Gradle 8.9
-    #   run: gradle build
-
+  # 2. Tarea original: Envío de dependencias para alertas de seguridad
   dependency-submission:
-
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -68,33 +54,11 @@ jobs:
         distribution: 'temurin'
 
     - name: Generate and submit dependency graph
-      uses: gradle/actions/dependency-submission@v3
+      uses: gradle/actions/dependency-submission@v4
       with:
-        # Esto le dice a GitHub que use vuestro wrapper de Gradle
-        # para analizar las librerías del proyecto.
         build-root-directory: .
 
-    # Generates and submits a dependency graph, enabling Dependabot Alerts for all project dependencies.
-    # See: https://github.com/gradle/actions/blob/main/dependency-submission/README.md
-    - name: Generate and submit dependency graph
-      uses: gradle/actions/dependency-submission@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
-
-      name: Java CI with Gradle and Doxygen Deployment
-
-on:
-  push:
-    branches: [ "main" ] # Cambia "main" por el nombre de tu rama si trabajas en otra
-
-permissions:
-  contents: read
-  pages: write      # Permiso obligatorio para poder actualizar la web de GitHub Pages
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
-jobs:
+  # 3. Nueva Tarea (Sprint 3): Construcción de Doxygen y despliegue web
   build-and-docs:
     runs-on: ubuntu-latest
 
@@ -102,10 +66,10 @@ jobs:
     - name: Checkout del código
       uses: actions/checkout@v4
 
-    - name: Configurar JDK 17
+    - name: Configurar JDK 21
       uses: actions/setup-java@v4
       with:
-        java-version: '17'
+        java-version: '21'
         distribution: 'temurin'
 
     - name: Instalar Doxygen en el servidor de GitHub
@@ -122,7 +86,9 @@ jobs:
         ./gradlew build -x test
 
     - name: Generar Documentación con Doxygen en GitHub
-      run: doxygen Doxyfile
+      run: |
+        mkdir -p docs/doxygen
+        doxygen Doxyfile
 
     - name: Configurar páginas estáticas de GitHub
       uses: actions/configure-pages@v4
@@ -130,7 +96,6 @@ jobs:
     - name: Subir artefacto de Doxygen generado
       uses: actions/upload-pages-artifact@v3
       with:
-        # Le indicamos que suba la carpeta que configuramos en el Doxyfile
         path: 'docs/doxygen/html'
 
     - name: Desplegar en GitHub Pages
