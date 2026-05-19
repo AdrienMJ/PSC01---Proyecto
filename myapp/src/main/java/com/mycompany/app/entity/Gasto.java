@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 @Table(name = "gastos")
@@ -36,12 +36,11 @@ public class Gasto {
     private String ticketUrl;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_reparto", length = 20, nullable = false)
+    @Column(name = "tipo_reparto", length = 20, nullable = false, columnDefinition = "varchar(20) default 'IGUAL'")
     private TipoReparto tipoReparto = TipoReparto.IGUAL;
 
     /** Cuotas individuales; solo se usan cuando tipoReparto != IGUAL */
-    @OneToMany(mappedBy = "gasto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @JsonIgnore
+    @OneToMany(mappedBy = "gasto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<GastoCuota> cuotas = new ArrayList<>();
 
     @ManyToOne
@@ -50,7 +49,6 @@ public class Gasto {
 
     @ManyToOne
     @JoinColumn(name = "grupo_id")
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Grupo grupo;
 
         @ManyToMany(fetch = FetchType.EAGER)
@@ -84,12 +82,12 @@ public class Gasto {
     public void setEmote(String emote) { this.emote = emote; }
     public boolean isRepartoGeneral() { return repartoGeneral; }
     public void setRepartoGeneral(Boolean repartoGeneral) { this.repartoGeneral = repartoGeneral; }
-    public Boolean getRepartoGeneral() { return repartoGeneral; }
     public boolean isPagado() { return pagado; }
     public void setPagado(boolean pagado) { this.pagado = pagado; }
     public LocalDateTime getFecha() { return fecha; }
     public Usuario getPagador() { return pagador; }
     public void setPagador(Usuario pagador) { this.pagador = pagador; }
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     public Grupo getGrupo() { return grupo; }
     public void setGrupo(Grupo grupo) { this.grupo = grupo; }
     public List<Usuario> getParticipantes() { return participantes; }
@@ -98,6 +96,7 @@ public class Gasto {
     public void setTicketUrl(String ticketUrl) { this.ticketUrl = ticketUrl; }
     public TipoReparto getTipoReparto() { return tipoReparto; }
     public void setTipoReparto(TipoReparto tipoReparto) { this.tipoReparto = tipoReparto; }
+    @JsonIgnore
     public List<GastoCuota> getCuotas() { return cuotas; }
     public void setCuotas(List<GastoCuota> cuotas) { this.cuotas = cuotas; }
 

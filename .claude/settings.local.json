@@ -16,7 +16,8 @@
       "Bash(./gradlew :myapp:test --tests \"com.mycompany.app.controller.GastoControllerTest.testCrearExito\" --info)",
       "Bash(./gradlew :myapp:test --tests \"com.mycompany.app.service.ContactoServiceTest\")",
       "Bash(./gradlew :myapp:test --tests \"com.mycompany.app.controller.ContactoControllerTest\")",
-      "Bash(./gradlew :myapp:test --tests \"com.mycompany.app.service.ContactoServiceTest\" --tests \"com.mycompany.app.controller.ContactoControllerTest\")"
+      "Bash(./gradlew :myapp:test --tests \"com.mycompany.app.service.ContactoServiceTest\" --tests \"com.mycompany.app.controller.ContactoControllerTest\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Mc358\\\\Desktop\\\\ProyectoMasonico\\\\PSC01---Proyecto\" -Recurse -Directory -Name)"
     ]
   }
 }

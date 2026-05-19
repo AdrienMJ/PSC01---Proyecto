@@ -33,7 +33,6 @@ public class Pago {
 
     @ManyToOne
     @JoinColumn(name = "grupo_id")
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Grupo grupo;
 
     public Pago() {}
@@ -54,6 +53,7 @@ public class Pago {
     public void setPagador(Usuario pagador) { this.pagador = pagador; }
     public Usuario getReceptor() { return receptor; }
     public void setReceptor(Usuario receptor) { this.receptor = receptor; }
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     public Grupo getGrupo() { return grupo; }
     public void setGrupo(Grupo grupo) { this.grupo = grupo; }
     public boolean isConfirmado() { return confirmado; }

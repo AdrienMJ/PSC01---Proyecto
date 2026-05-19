@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "grupos")
 public class Grupo {
@@ -57,6 +59,7 @@ public class Grupo {
     public void setMoneda(Moneda moneda) { this.moneda = moneda; }
     public List<Usuario> getMiembros() { return miembros; }
     public void setMiembros(List<Usuario> miembros) {this.miembros = miembros;}
+    @JsonIgnore
     public List<Gasto> getGastos() { return gastos; }
     public boolean isArchivado() { return archivado; }
     public void setArchivado(boolean archivado) { this.archivado = archivado; }
