@@ -81,9 +81,7 @@ jobs:
       run: chmod +x gradlew
 
     - name: Compilar Proyecto de Java
-      run: |
-        cd myapp
-        ./gradlew build -x test
+      run: ./gradlew build -x test
 
     - name: Generar Documentación con Doxygen en GitHub
       run: |
