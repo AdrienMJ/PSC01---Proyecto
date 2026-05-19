@@ -156,3 +156,6 @@ macOS/Linux:
 - Si el puerto `8080` está ocupado, cierra el proceso que lo use o configura otro puerto en `application.properties` (`server.port=...`).
 - Si los tests fallan por caché o compilación anterior, prueba `clean test`.
 - Si hay problemas de Java, verifica que estás usando Java 21.
+
+## Documentación de Swagger
+-  http://localhost:8080/swagger-ui.html

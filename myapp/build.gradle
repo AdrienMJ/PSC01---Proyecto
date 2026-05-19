@@ -45,6 +45,9 @@ dependencies {
 
     // Librería para manejar CSV (HU #5)
     implementation 'com.opencsv:opencsv:5.7.1'
+    
+    // Librería para generar documentación OpenAPI (Swagger)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5'
 }
 
 test {
