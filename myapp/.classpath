@@ -7,7 +7,7 @@
 			<attribute name="test" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="src" output="bin/main" path="src/main/resources">
+	<classpathentry excluding="**" kind="src" output="bin/main" path="src/main/resources">
 		<attributes>
 			<attribute name="gradle_scope" value="main"/>
 			<attribute name="gradle_used_by_scope" value="main,test"/>
@@ -21,5 +21,16 @@
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-21/"/>
 	<classpathentry kind="con" path="org.eclipse.buildship.core.gradleclasspathcontainer"/>
+	<classpathentry kind="lib" path="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/org.springdoc/springdoc-openapi-starter-webmvc-ui/2.8.5/3cb90c2405edb9b0a841b8be06dff85810f6669/springdoc-openapi-starter-webmvc-ui-2.8.5.jar" sourcepath="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/org.springdoc/springdoc-openapi-starter-webmvc-ui/2.8.5/e716755acb7dbdf03cf8911e669edd69ce11e756/springdoc-openapi-starter-webmvc-ui-2.8.5-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/org.springdoc/springdoc-openapi-starter-webmvc-api/2.8.5/14b01ce78902bd69087abaaf364688d1de2bddcf/springdoc-openapi-starter-webmvc-api-2.8.5.jar" sourcepath="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/org.springdoc/springdoc-openapi-starter-webmvc-api/2.8.5/f9861076b4cb1208b5e5bb23b64d6214433e563f/springdoc-openapi-starter-webmvc-api-2.8.5-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/org.springdoc/springdoc-openapi-starter-common/2.8.5/6642dd0895e9b06848584797d1f97293f2e2afd6/springdoc-openapi-starter-common-2.8.5.jar" sourcepath="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/org.springdoc/springdoc-openapi-starter-common/2.8.5/28896dc6462b577efa79790f3385e5b390c90ace/springdoc-openapi-starter-common-2.8.5-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/io.swagger.core.v3/swagger-core-jakarta/2.2.28/d990934d07d250cedcf2bbc7632118ae316bf712/swagger-core-jakarta-2.2.28.jar" sourcepath="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/io.swagger.core.v3/swagger-core-jakarta/2.2.28/d8e3b7d97ae1d356f077fd49a70c258323bba8e3/swagger-core-jakarta-2.2.28-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/org.webjars/swagger-ui/5.18.3/f67530d3015d70cca8fad24d64065684bba2ac74/swagger-ui-5.18.3.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/org.webjars/webjars-locator-lite/1.0.1/b4389136604123d4fe4199cc29b94a33206996bc/webjars-locator-lite-1.0.1.jar" sourcepath="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/org.webjars/webjars-locator-lite/1.0.1/48c80cd6edb10540fb73a16e0fb74ba933ec61ab/webjars-locator-lite-1.0.1-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/io.swagger.core.v3/swagger-models-jakarta/2.2.28/72865af71d886a979322def19fc86753f267d4f7/swagger-models-jakarta-2.2.28.jar" sourcepath="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/io.swagger.core.v3/swagger-models-jakarta/2.2.28/b2c175e046693a29fa5f8fde3f4fdd371b3d1a9e/swagger-models-jakarta-2.2.28-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/com.fasterxml.jackson.dataformat/jackson-dataformat-yaml/2.18.2/d000e13505d1cf564371516fa3d5b8769a779dc9/jackson-dataformat-yaml-2.18.2.jar" sourcepath="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/com.fasterxml.jackson.dataformat/jackson-dataformat-yaml/2.18.2/1723c88f7c5024ed1b55b07c5c006983697d7780/jackson-dataformat-yaml-2.18.2-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/org.jspecify/jspecify/1.0.0/7425a601c1c7ec76645a78d22b8c6a627edee507/jspecify-1.0.0.jar" sourcepath="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/org.jspecify/jspecify/1.0.0/f1a67bbcf2f9f282baf3821046563983f16ca9b2/jspecify-1.0.0-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/io.swagger.core.v3/swagger-annotations-jakarta/2.2.28/4b303c4bf8940b417e50e3600eb63aa6f6531f0/swagger-annotations-jakarta-2.2.28.jar" sourcepath="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/io.swagger.core.v3/swagger-annotations-jakarta/2.2.28/b71f7d463147b12c08e67ad4e49d8a283dfa0474/swagger-annotations-jakarta-2.2.28-sources.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/jakarta.validation/jakarta.validation-api/3.0.2/92b6631659ba35ca09e44874d3eb936edfeee532/jakarta.validation-api-3.0.2.jar" sourcepath="C:/Users/Zander/.gradle/caches/modules-2/files-2.1/jakarta.validation/jakarta.validation-api/3.0.2/b1581d1ef516be94c473c0f4d97e59e394c70150/jakarta.validation-api-3.0.2-sources.jar"/>
 	<classpathentry kind="output" path="bin/default"/>
 </classpath>
