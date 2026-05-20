@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class App {
     public static void main(String[] args) {
         SpringApplication.run(App.class, args);
-        System.out.println("¡App de Tricount funcionando!");
+        System.out.println("¡App de DeustoCount funcionando!");
         
         // Ejemplo de creación de objetos compatible con las nuevas Entidades
         Usuario adrien = new Usuario("Adrien", "adrien@mail.com", "123");
